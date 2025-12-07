@@ -2,9 +2,24 @@
 
 Shared and reusable GitHub Actions workflows for all WasteHero projects.
 
-## Overview
+## Quick Start
+
+**New to this repository?** Start here: [Comprehensive Documentation](docs/README.md)
 
 This repository contains centralized GitHub Actions workflows that can be reused across all WasteHero organization repositories. This approach ensures consistency, reduces duplication, and simplifies maintenance of CI/CD pipelines.
+
+## Documentation
+
+Complete documentation is available in the `docs/` directory following the **Diataxis framework**:
+
+- **Tutorials** - [Get started learning](docs/tutorials/README.md)
+- **How-To Guides** - [Solve specific problems](docs/how-to-guides/README.md)
+- **Reference** - [Look up technical specs](docs/reference/README.md)
+- **Explanation** - [Understand the concepts](docs/explanation/README.md)
+
+**First time?** → [docs/README.md](docs/README.md) | **Need help?** → [Debugging Guide](docs/how-to-guides/debugging-workflow-failures.md)
+
+## Overview
 
 ## Workflows
 
@@ -87,7 +102,7 @@ jobs:
       UV_INDEX_WASTEHERO_PASSWORD: ${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}
 ```
 
-For detailed documentation, see [STANDARD_CHECK_WORKFLOWS.md](docs/STANDARD_CHECK_WORKFLOWS.md)
+For detailed documentation, see [standard-check-workflows.md](docs/standard-check-workflows.md)
 
 ### Core AI Quality Gate Workflows
 
@@ -117,7 +132,7 @@ Comprehensive Python code review using Claude AI.
 
 **Output:** Posts code review findings to PR with categorized issues and count
 
-For detailed documentation, see [AI_QUALITY_GATES.md](docs/AI_QUALITY_GATES.md)
+For detailed documentation, see [ai-quality-gates.md](docs/ai-quality-gates.md)
 
 ## Required Secrets
 
