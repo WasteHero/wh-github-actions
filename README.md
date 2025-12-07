@@ -119,43 +119,59 @@ Comprehensive Python code review using Claude AI.
 
 For detailed documentation, see [AI_QUALITY_GATES.md](docs/AI_QUALITY_GATES.md)
 
-### AI PR Workflows
+## Required Secrets
 
-Automated workflows that leverage AI to enhance pull request processes, including:
-- Automated code reviews
-- PR description generation
-- Code quality analysis
-- Automated testing and validation
+Configure these secrets in your repository or organization settings (**Settings → Secrets and variables → Actions**):
 
-## Testing
+### 1. ANTHROPIC_API_KEY
+**Used by**: AI Quality Gate workflows (`python-quality-gate.yml`, `python-review-gate.yml`)
 
-The repository includes comprehensive test workflows for validating the quality gates:
+**Purpose**: Authenticates with Claude AI for automated code quality analysis and review
 
-- **`test-quality-gate-mock.yml`**: Tests the Python Quality Gate workflow
-- **`test-review-gate-mock.yml`**: Tests the Python Review Gate workflow
+**How to obtain**:
+1. Visit [Anthropic Console](https://console.anthropic.com/)
+2. Create an API key
+3. Copy the key value
 
-**Running Tests Locally:**
+**Scope**: Repository or Organization level
 
-```bash
-# Install act (GitHub Actions runtime simulator)
-brew install act  # macOS
-# or
-pacman -S act     # Linux (Arch)
+**Required for**:
+- `python-quality-gate.yml` - AI-powered quality analysis
+- `python-review-gate.yml` - AI-powered code review
 
-# Run quality gate tests
-act -W .github/workflows/test-quality-gate-mock.yml workflow_dispatch \
-  --secret ANTHROPIC_API_KEY=mock-key
+---
 
-# Run review gate tests
-act -W .github/workflows/test-review-gate-mock.yml workflow_dispatch \
-  --secret ANTHROPIC_API_KEY=mock-key
-```
+### 2. UV_INDEX_WASTEHERO_USERNAME
+**Used by**: Standard check workflows (`python-type-check.yml`, `python-security-audit.yml`)
 
-For detailed testing instructions, see [TEST_INSTRUCTIONS.md](TEST_INSTRUCTIONS.md)
+**Purpose**: Username for authenticating with WasteHero's private PyPI repository at `pypi.wastehero.io`
 
-For test results and validation details, see [TEST_REPORT.md](TEST_REPORT.md)
+**Scope**: Repository or Organization level
+
+**Required for**:
+- `python-type-check.yml` - Type checking with dependencies
+- `python-security-audit.yml` - Security scanning with dependencies
+
+---
+
+### 3. UV_INDEX_WASTEHERO_PASSWORD
+**Used by**: Standard check workflows (`python-type-check.yml`, `python-security-audit.yml`)
+
+**Purpose**: Password/token for authenticating with WasteHero's private PyPI repository
+
+**Scope**: Repository or Organization level
+
+**Required for**:
+- `python-type-check.yml` - Type checking with dependencies
+- `python-security-audit.yml` - Security scanning with dependencies
+
+---
+
+**Note**: Secrets are automatically inherited by reusable workflows when called with `secrets: inherit` or passed explicitly
 
 ## Usage
+
+### Basic Usage
 
 To use these shared workflows in your WasteHero project, reference them in your repository's workflow file:
 
@@ -165,8 +181,68 @@ on: [pull_request]
 
 jobs:
   call-shared-workflow:
-    uses: WasteHero/wh-github-actions/.github/workflows/workflow-name.yml@main
+    uses: WasteHero/wastehero-github-actions/.github/workflows/workflow-name.yml@main
     secrets: inherit
+```
+
+### Complete CI Pipeline Example
+
+Here's a complete example using all workflows in the correct order:
+
+```yaml
+name: Python CI Pipeline
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # Phase 1: AI Quality Gate (runs first, blocks everything if issues found)
+  quality-gate:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-quality-gate.yml@main
+    with:
+      project: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Phase 2: Standard Checks (run in parallel after quality gate passes)
+  lint:
+    needs: quality-gate
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-lint.yml@main
+
+  type-check:
+    needs: quality-gate
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-type-check.yml@main
+    secrets:
+      UV_INDEX_WASTEHERO_USERNAME: ${{ secrets.UV_INDEX_WASTEHERO_USERNAME }}
+      UV_INDEX_WASTEHERO_PASSWORD: ${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}
+
+  security-audit:
+    needs: quality-gate
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-security-audit.yml@main
+    secrets:
+      UV_INDEX_WASTEHERO_USERNAME: ${{ secrets.UV_INDEX_WASTEHERO_USERNAME }}
+      UV_INDEX_WASTEHERO_PASSWORD: ${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}
+
+  # Phase 3: AI Code Review (runs after standard checks pass)
+  code-review:
+    needs: [lint, type-check, security-audit]
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-review-gate.yml@main
+    with:
+      project: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Phase 4: Your tests (run after all gates pass)
+  tests:
+    needs: [code-review]
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: WasteHero/wastehero-github-actions/.github/actions/setup-python-env@main
+      - run: uv run pytest
 ```
 
 ## Contributing

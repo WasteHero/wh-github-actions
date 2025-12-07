@@ -41,7 +41,10 @@ Add to your workflow file:
 ```yaml
 jobs:
   quality-gate:
-    uses: WasteHero/wh-github-actions/.github/workflows/core/python-quality-gate.yml@feature/CT-1166-foundation-workflows
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-quality-gate.yml@main
+    with:
+      project: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -87,7 +90,10 @@ Add to your workflow file:
 ```yaml
 jobs:
   review-gate:
-    uses: WasteHero/wh-github-actions/.github/workflows/core/python-review-gate.yml@feature/CT-1166-foundation-workflows
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-review-gate.yml@main
+    with:
+      project: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -105,12 +111,18 @@ on:
 
 jobs:
   quality-gate:
-    uses: WasteHero/wh-github-actions/.github/workflows/core/python-quality-gate.yml@feature/CT-1166-foundation-workflows
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-quality-gate.yml@main
+    with:
+      project: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
   review-gate:
-    uses: WasteHero/wh-github-actions/.github/workflows/core/python-review-gate.yml@feature/CT-1166-foundation-workflows
+    uses: WasteHero/wastehero-github-actions/.github/workflows/core/python-review-gate.yml@main
+    with:
+      project: ${{ github.repository }}
+      pr-number: ${{ github.event.pull_request.number }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
