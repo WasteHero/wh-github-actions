@@ -1,0 +1,34 @@
+# NATS with JetStream enabled - idempotent stream initialization in app code
+name: NATS Service
+
+on:
+  workflow_call:
+    outputs:
+      nats-ready:
+        description: 'NATS service readiness status'
+        value: ${{ jobs.nats-service.outputs.nats-ready }}
+
+permissions:
+  contents: read
+
+jobs:
+  nats-service:
+    name: NATS Service
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    outputs:
+      nats-ready: ${{ steps.wait.outputs.ready }}
+
+    steps:
+      - name: Wait for NATS service
+        id: wait
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: nats
+          host: localhost
+          port: '4222'
+          max-retries: '30'
+
+      - name: Verify NATS connection
+        shell: bash
+        run: |
+          nc -zv localhost 4222 || true

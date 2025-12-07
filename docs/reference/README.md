@@ -31,9 +31,9 @@ Service composition workflows validate the availability of external services (da
 |----------|-----------|---------|------|
 | PostgreSQL Service | [postgresql-service-workflow.md](postgresql-service-workflow.md) | PostgreSQL 17-Alpine | 5432 |
 | MongoDB Service | [mongodb-service-workflow.md](mongodb-service-workflow.md) | MongoDB 8.0 | 27017 |
-| ValKey Service | _Coming Phase 3_ | ValKey (Redis) | 6379 |
-| NATS Service | _Coming Phase 3_ | NATS Broker | 4222 |
-| Vault Service | _Coming Phase 4_ | HashiCorp Vault | 8200 |
+| ValKey Service | [valkey-service-workflow.md](valkey-service-workflow.md) | ValKey 8.0-Alpine (Redis fork) | 6379 |
+| NATS Service | [nats-service-workflow.md](nats-service-workflow.md) | NATS with JetStream | 4222 |
+| Vault Service | [vault-service-workflow.md](vault-service-workflow.md) | HashiCorp Vault 1.18 | 8200 |
 
 ## Composite Actions
 
@@ -238,6 +238,110 @@ jobs:
 
 See: [postgresql-service-workflow.md](postgresql-service-workflow.md) and [mongodb-service-workflow.md](mongodb-service-workflow.md)
 
+### Complete Multi-Service Stack (Phase 2)
+
+Example with all Phase 2 services: PostgreSQL, MongoDB, ValKey cache, NATS messaging, and Vault secrets:
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 5432:5432
+
+  mongodb:
+    image: mongo:8.0
+    options: >-
+      --health-cmd mongosh
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 27017:27017
+
+  valkey:
+    image: valkey:8.0-alpine
+    options: >-
+      --health-cmd "redis-cli ping"
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 6379:6379
+
+  nats:
+    image: nats:latest
+    command: "nats-server -js"
+    options: >-
+      --health-cmd "nats-cli server check"
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 4222:4222
+      - 8222:8222
+
+  vault:
+    image: hashicorp/vault:1.18
+    env:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-token
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    options: >-
+      --health-cmd "vault status"
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 5
+      --cap-add IPC_LOCK
+    ports:
+      - 8200:8200
+
+jobs:
+  postgres-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/postgresql-service.yml@main
+
+  mongodb-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/mongodb-service.yml@main
+
+  valkey-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/valkey-service.yml@main
+
+  nats-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/nats-service.yml@main
+
+  vault-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/vault-service.yml@main
+
+  integration-tests:
+    needs: [postgres-service, mongodb-service, valkey-service, nats-service, vault-service]
+    if: |
+      ${{ needs.postgres-service.outputs.postgres-ready == 'true' &&
+          needs.mongodb-service.outputs.mongodb-ready == 'true' &&
+          needs.valkey-service.outputs.valkey-ready == 'true' &&
+          needs.nats-service.outputs.nats-ready == 'true' &&
+          needs.vault-service.outputs.vault-ready == 'true' }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      MONGODB_URI: mongodb://localhost:27017/testdb
+      REDIS_URL: redis://localhost:6379/0
+      NATS_URL: nats://localhost:4222
+      VAULT_ADDR: http://localhost:8200
+      VAULT_TOKEN: dev-token
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test -- --integration --all-services
+```
+
+See: [postgresql-service-workflow.md](postgresql-service-workflow.md), [mongodb-service-workflow.md](mongodb-service-workflow.md), [valkey-service-workflow.md](valkey-service-workflow.md), [nats-service-workflow.md](nats-service-workflow.md), and [vault-service-workflow.md](vault-service-workflow.md)
+
 ## Version References
 
 ### Workflow Versions
@@ -344,10 +448,13 @@ Ready to dive into the details? Choose your workflow:
 
 6. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
 7. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
+8. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
+9. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
+10. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
 
 ### Configuration
 
-8. **[Required Secrets](required-secrets.md)** - Secret configuration specs
+11. **[Required Secrets](required-secrets.md)** - Secret configuration specs
 
 ---
 
