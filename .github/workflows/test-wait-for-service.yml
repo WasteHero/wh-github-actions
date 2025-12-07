@@ -1,0 +1,126 @@
+name: Test Wait for Service Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      service-type:
+        description: 'Service type to test'
+        required: false
+        default: 'nats'
+        type: choice
+        options:
+          - nats
+          - valkey
+          - postgres
+          - mongodb
+
+permissions:
+  contents: read
+
+jobs:
+  test-netcat-service:
+    name: Test NC-based Service (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - nats
+          - valkey
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Start Mock ${{ matrix.service }} Server
+        run: |
+          # Start a simple netcat listener in the background
+          nc -l -p 4222 &
+          NC_PID=$!
+          echo "Mock server PID: $NC_PID"
+          sleep 1  # Give the server time to start
+          echo "SERVER_PID=$NC_PID" >> $GITHUB_ENV
+
+      - name: Test Wait for ${{ matrix.service }}
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: ${{ matrix.service }}
+          host: 'localhost'
+          port: '4222'
+          max-retries: '5'
+          retry-interval: '1'
+
+      - name: Cleanup Mock Server
+        if: always()
+        run: |
+          if [ ! -z "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+            wait $SERVER_PID 2>/dev/null || true
+          fi
+
+  test-failure-case:
+    name: Test Failure Case (Unavailable Service)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Test Wait for Unavailable Service
+        continue-on-error: true
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: 'nats'
+          host: 'localhost'
+          port: '9999'
+          max-retries: '2'
+          retry-interval: '1'
+        id: wait-test
+
+      - name: Verify Failure Was Expected
+        run: |
+          if [ "${{ steps.wait-test.outcome }}" = "failure" ]; then
+            echo "Test passed: action correctly failed for unavailable service"
+            exit 0
+          else
+            echo "Test failed: action should have failed for unavailable service"
+            exit 1
+          fi
+
+  syntax-validation:
+    name: Validate Action Syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate action.yml
+        run: |
+          if [ ! -f ".github/actions/wait-for-service/action.yml" ]; then
+            echo "ERROR: action.yml not found"
+            exit 1
+          fi
+
+          echo "Checking action.yml syntax..."
+          if ! grep -q "^name:" .github/actions/wait-for-service/action.yml; then
+            echo "ERROR: Missing 'name' field"
+            exit 1
+          fi
+
+          if ! grep -q "^description:" .github/actions/wait-for-service/action.yml; then
+            echo "ERROR: Missing 'description' field"
+            exit 1
+          fi
+
+          if ! grep -q "^inputs:" .github/actions/wait-for-service/action.yml; then
+            echo "ERROR: Missing 'inputs' section"
+            exit 1
+          fi
+
+          if ! grep -q "^runs:" .github/actions/wait-for-service/action.yml; then
+            echo "ERROR: Missing 'runs' section"
+            exit 1
+          fi
+
+          echo "Basic syntax validation passed!"
