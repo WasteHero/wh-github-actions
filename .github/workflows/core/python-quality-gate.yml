@@ -2,6 +2,15 @@ name: Python Quality Gate
 
 on:
   workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+        description: GitHub repository (owner/repo format)
+      pr-number:
+        required: true
+        type: number
+        description: Pull request number
     secrets:
       ANTHROPIC_API_KEY:
         required: true
@@ -22,6 +31,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout Claude agents
+        uses: actions/checkout@v4
+        with:
+          repository: WasteHero/claude-development-environment
+          path: .claude-dev-env
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Claude agents
+        run: |
+          mkdir -p .claude/agents
+          cp .claude-dev-env/agents/py-quality.md .claude/agents/
+          cp .claude-dev-env/agents/py-reviewer.md .claude/agents/
+
       - name: Run Python quality analysis with Claude
         id: quality-analysis
         uses: anthropics/claude-code-action@v1
@@ -30,43 +52,30 @@ jobs:
           prompt: |
             Run @agent-py-quality to identify all code quality issues in Python files.
 
-            Output findings in this format:
-            - Issue description
-            - File and line number
-            - How to fix
-
-            If NO issues found, output: "✅ No quality issues found"
-          claude_args: "--model claude-haiku-4-5-20251001 --max-turns 3"
+            Analyze the Python code and return a structured response with:
+            - has_issues: boolean indicating if any quality issues were found
+            - summary: detailed description of all issues found (or success message if none)
+            - issue_count: number of issues found
+          claude_args: |
+            --model claude-haiku-4-5-20251001 --max-turns 3 --json-schema '{"type":"object","properties":{"has_issues":{"type":"boolean"},"summary":{"type":"string"},"issue_count":{"type":"number"}},"required":["has_issues","summary","issue_count"]}'
 
       - name: Post quality analysis to PR
         if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const output = `${{ steps.quality-analysis.outputs.result }}`;
+            const result = JSON.parse('${{ steps.quality-analysis.outputs.structured_output }}');
+            const [owner, repo] = '${{ inputs.project }}'.split('/');
 
             github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## Python Quality Gate Analysis\n\n${output}`
+              issue_number: ${{ inputs.pr-number }},
+              owner: owner,
+              repo: repo,
+              body: `## ❌ Python Quality Gate Analysis\n\n${result.summary}\n\n**Issues Found**: ${result.issue_count}`
             });
 
-      - name: Determine quality gate result
-        id: gate-result
-        run: |
-          output="${{ steps.quality-analysis.outputs.result }}"
-
-          if [[ "$output" == *"No quality issues found"* ]]; then
-            echo "result=pass" >> $GITHUB_OUTPUT
-            echo "Quality gate PASSED: No issues found"
-          else
-            echo "result=fail" >> $GITHUB_OUTPUT
-            echo "Quality gate FAILED: Issues found"
-          fi
-
       - name: Fail workflow if issues found
-        if: steps.gate-result.outputs.result == 'fail'
+        if: fromJSON(steps.quality-analysis.outputs.structured_output).has_issues == true
         run: |
-          echo "Quality gate failed - issues detected in Python code"
+          echo "Quality gate failed - ${{ fromJSON(steps.quality-analysis.outputs.structured_output).issue_count }} issues detected in Python code"
           exit 1
