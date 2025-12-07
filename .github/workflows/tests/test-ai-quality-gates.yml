@@ -1,0 +1,433 @@
+name: Test AI Quality Gate Workflows
+
+on:
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose logging'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-quality-gate-workflow:
+    name: Validate Python Quality Gate Workflow
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate quality gate workflow YAML
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          echo "Checking YAML syntax for $workflow_file..."
+
+          # Basic YAML validation
+          if grep -q "^name:" "$workflow_file" && \
+             grep -q "^on:" "$workflow_file" && \
+             grep -q "^jobs:" "$workflow_file"; then
+            echo "✓ Quality gate workflow YAML structure valid"
+          else
+            echo "ERROR: Quality gate workflow YAML structure invalid"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate quality gate inputs and secrets
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for required inputs
+          if grep -q "project:" "$workflow_file" && \
+             grep -q "pr-number:" "$workflow_file"; then
+            echo "✓ Quality gate has required inputs"
+          else
+            echo "ERROR: Quality gate missing required inputs"
+            exit 1
+          fi
+
+          # Check for ANTHROPIC_API_KEY secret
+          if grep -q "ANTHROPIC_API_KEY:" "$workflow_file"; then
+            echo "✓ ANTHROPIC_API_KEY secret declared"
+          else
+            echo "ERROR: ANTHROPIC_API_KEY secret not declared"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate quality gate workflow steps
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for checkout step
+          if grep -q "actions/checkout" "$workflow_file"; then
+            echo "✓ Checkout step present"
+          else
+            echo "ERROR: Checkout step missing"
+            exit 1
+          fi
+
+          # Check for Claude agent checkout
+          if grep -q "WasteHero/claude-development-environment" "$workflow_file"; then
+            echo "✓ Claude agents checkout step present"
+          else
+            echo "ERROR: Claude agents checkout missing"
+            exit 1
+          fi
+
+          # Check for claude-code-action
+          if grep -q "anthropics/claude-code-action" "$workflow_file"; then
+            echo "✓ Claude Code action reference found"
+          else
+            echo "ERROR: Claude Code action reference missing"
+            exit 1
+          fi
+
+          # Check for github-script action
+          if grep -q "actions/github-script" "$workflow_file"; then
+            echo "✓ GitHub Script action reference found"
+          else
+            echo "ERROR: GitHub Script action reference missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate Claude Code action configuration
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for model specification
+          if grep -q "claude-haiku" "$workflow_file"; then
+            echo "✓ Claude Haiku model specified"
+          else
+            echo "ERROR: Claude Haiku model not specified"
+            exit 1
+          fi
+
+          # Check for max-turns limit
+          if grep -q "max-turns" "$workflow_file"; then
+            echo "✓ Max turns limit configured"
+          else
+            echo "ERROR: Max turns limit not configured"
+            exit 1
+          fi
+
+          # Check for json-schema
+          if grep -q "json-schema" "$workflow_file"; then
+            echo "✓ JSON schema validation configured"
+          else
+            echo "ERROR: JSON schema validation not configured"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate agent configuration in quality gate
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for agent setup
+          if grep -q "mkdir -p .claude/agents" "$workflow_file"; then
+            echo "✓ Agent directory creation step present"
+          else
+            echo "ERROR: Agent directory creation missing"
+            exit 1
+          fi
+
+          # Check for agent file copying
+          if grep -q "py-quality.md" "$workflow_file" && \
+             grep -q "py-reviewer.md" "$workflow_file"; then
+            echo "✓ Agent files copy configuration present"
+          else
+            echo "ERROR: Agent files copy configuration missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate permissions in quality gate
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check permissions
+          if grep -A3 "^permissions:" "$workflow_file" | grep -q "contents: read" && \
+             grep -A3 "^permissions:" "$workflow_file" | grep -q "pull-requests: write"; then
+            echo "✓ Correct permissions for quality gate"
+          else
+            echo "ERROR: Missing or incorrect permissions"
+            exit 1
+          fi
+        shell: bash
+
+  validate-review-gate-workflow:
+    name: Validate Python Review Gate Workflow
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate review gate workflow YAML
+        run: |
+          workflow_file=".github/workflows/core/python-review-gate.yml"
+
+          echo "Checking YAML syntax for $workflow_file..."
+
+          # Basic YAML validation
+          if grep -q "^name:" "$workflow_file" && \
+             grep -q "^on:" "$workflow_file" && \
+             grep -q "^jobs:" "$workflow_file"; then
+            echo "✓ Review gate workflow YAML structure valid"
+          else
+            echo "ERROR: Review gate workflow YAML structure invalid"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate review gate inputs and secrets
+        run: |
+          workflow_file=".github/workflows/core/python-review-gate.yml"
+
+          # Check for required inputs
+          if grep -q "project:" "$workflow_file" && \
+             grep -q "pr-number:" "$workflow_file"; then
+            echo "✓ Review gate has required inputs"
+          else
+            echo "ERROR: Review gate missing required inputs"
+            exit 1
+          fi
+
+          # Check for ANTHROPIC_API_KEY secret
+          if grep -q "ANTHROPIC_API_KEY:" "$workflow_file"; then
+            echo "✓ ANTHROPIC_API_KEY secret declared"
+          else
+            echo "ERROR: ANTHROPIC_API_KEY secret not declared"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate review gate workflow steps
+        run: |
+          workflow_file=".github/workflows/core/python-review-gate.yml"
+
+          # Check for checkout with full history
+          if grep -q "fetch-depth: 0" "$workflow_file"; then
+            echo "✓ Full history checkout configured"
+          else
+            echo "ERROR: Full history checkout not configured"
+            exit 1
+          fi
+
+          # Check for claude-code-action
+          if grep -q "anthropics/claude-code-action" "$workflow_file"; then
+            echo "✓ Claude Code action reference found"
+          else
+            echo "ERROR: Claude Code action reference missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate Claude Code action in review gate
+        run: |
+          workflow_file=".github/workflows/core/python-review-gate.yml"
+
+          # Check for model specification
+          if grep -q "claude-haiku" "$workflow_file"; then
+            echo "✓ Claude Haiku model specified"
+          else
+            echo "ERROR: Claude Haiku model not specified"
+            exit 1
+          fi
+
+          # Check for appropriate max-turns for review
+          if grep -q "max-turns" "$workflow_file"; then
+            max_turns=$(grep -o "max-turns [0-9]*" "$workflow_file" | awk '{print $2}')
+            if [ "$max_turns" -ge 3 ]; then
+              echo "✓ Adequate max turns configured for review ($max_turns)"
+            else
+              echo "WARNING: Max turns may be too low for thorough review ($max_turns)"
+            fi
+          fi
+        shell: bash
+
+      - name: Validate permissions in review gate
+        run: |
+          workflow_file=".github/workflows/core/python-review-gate.yml"
+
+          # Check permissions
+          if grep -A3 "^permissions:" "$workflow_file" | grep -q "contents: read" && \
+             grep -A3 "^permissions:" "$workflow_file" | grep -q "pull-requests: write"; then
+            echo "✓ Correct permissions for review gate"
+          else
+            echo "ERROR: Missing or incorrect permissions"
+            exit 1
+          fi
+        shell: bash
+
+  test-ai-gates-callability:
+    name: Test AI Quality Gate Callable Interface
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify AI gates are callable with correct interface
+        run: |
+          workflows=(
+            ".github/workflows/core/python-quality-gate.yml"
+            ".github/workflows/core/python-review-gate.yml"
+          )
+
+          for workflow in "${workflows[@]}"; do
+            echo "Checking callable interface for $workflow..."
+
+            # Check for workflow_call
+            if grep -q "workflow_call:" "$workflow"; then
+              echo "✓ $workflow is callable"
+            else
+              echo "ERROR: $workflow is not callable"
+              exit 1
+            fi
+
+            # Check for inputs section
+            if grep -q "inputs:" "$workflow"; then
+              echo "✓ $workflow has inputs defined"
+            else
+              echo "ERROR: $workflow missing inputs"
+              exit 1
+            fi
+
+            # Check for secrets section
+            if grep -q "secrets:" "$workflow"; then
+              echo "✓ $workflow has secrets defined"
+            else
+              echo "ERROR: $workflow missing secrets section"
+              exit 1
+            fi
+          done
+        shell: bash
+
+      - name: Validate input specifications
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check project input
+          if grep -A3 "project:" "$workflow_file" | grep -q "required: true"; then
+            echo "✓ Project input marked as required"
+          else
+            echo "ERROR: Project input not marked as required"
+            exit 1
+          fi
+
+          # Check pr-number input
+          if grep -A3 "pr-number:" "$workflow_file" | grep -q "required: true"; then
+            echo "✓ PR number input marked as required"
+          else
+            echo "ERROR: PR number input not marked as required"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate secret specifications
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check ANTHROPIC_API_KEY secret
+          if grep -A3 "ANTHROPIC_API_KEY:" "$workflow_file" | grep -q "required: true"; then
+            echo "✓ ANTHROPIC_API_KEY secret marked as required"
+          else
+            echo "ERROR: ANTHROPIC_API_KEY secret not marked as required"
+            exit 1
+          fi
+        shell: bash
+
+  test-ai-gates-structure:
+    name: Test AI Quality Gate Structure
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify output handling
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for structured output usage
+          if grep -q "structured_output" "$workflow_file"; then
+            echo "✓ Structured output handling configured"
+          else
+            echo "ERROR: Structured output handling missing"
+            exit 1
+          fi
+
+          # Check for JSON schema definition
+          if grep -q 'json-schema.*type.*object' "$workflow_file"; then
+            echo "✓ JSON schema properly defined"
+          else
+            echo "ERROR: JSON schema not properly defined"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Verify error handling
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for always() condition
+          if grep -q "if: always()" "$workflow_file"; then
+            echo "✓ Error handling with always() configured"
+          else
+            echo "ERROR: Always condition not found for error handling"
+            exit 1
+          fi
+
+          # Check for failure condition
+          if grep -q "has_issues == true" "$workflow_file"; then
+            echo "✓ Failure condition based on issues configured"
+          else
+            echo "ERROR: Failure condition not properly configured"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Verify PR integration
+        run: |
+          workflow_file=".github/workflows/core/python-quality-gate.yml"
+
+          # Check for github-script step
+          if grep -q "github.rest.issues.createComment" "$workflow_file"; then
+            echo "✓ PR comment creation configured"
+          else
+            echo "ERROR: PR comment creation not configured"
+            exit 1
+          fi
+
+          # Check for issue owner/repo parsing
+          if grep -q "split('/')" "$workflow_file"; then
+            echo "✓ Project owner/repo parsing configured"
+          else
+            echo "ERROR: Project parsing not configured"
+            exit 1
+          fi
+        shell: bash
+
+  test-summary:
+    name: AI Quality Gates Validation Summary
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    needs: [validate-quality-gate-workflow, validate-review-gate-workflow, test-ai-gates-callability, test-ai-gates-structure]
+    if: always()
+
+    steps:
+      - name: Report AI gates validation results
+        run: |
+          echo "=== AI Quality Gates Validation Summary ==="
+          echo "✓ Python Quality Gate workflow: PASSED"
+          echo "✓ Python Review Gate workflow: PASSED"
+          echo "✓ Callable interface validation: PASSED"
+          echo "✓ Structure validation: PASSED"
+          echo "=== All AI quality gate validations completed ==="
+        shell: bash

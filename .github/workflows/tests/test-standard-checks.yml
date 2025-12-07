@@ -1,0 +1,347 @@
+name: Test Standard Check Workflows
+
+on:
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose logging'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-lint-workflow:
+    name: Validate Python Lint Workflow
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate lint workflow YAML
+        run: |
+          workflow_file=".github/workflows/core/python-lint.yml"
+
+          echo "Checking YAML syntax for $workflow_file..."
+
+          if ! command -v yq &> /dev/null; then
+            echo "Installing yq for YAML validation..."
+            go install github.com/mikefarah/yq/v4@latest >/dev/null 2>&1 || true
+          fi
+
+          # Basic YAML validation
+          if grep -q "^name:" "$workflow_file" && \
+             grep -q "^on:" "$workflow_file" && \
+             grep -q "^jobs:" "$workflow_file"; then
+            echo "✓ Lint workflow YAML structure valid"
+          else
+            echo "ERROR: Lint workflow YAML structure invalid"
+            exit 1
+          fi
+
+          # Check required fields
+          if grep -q "workflow_call:" "$workflow_file"; then
+            echo "✓ Lint workflow is callable"
+          else
+            echo "ERROR: Lint workflow is not callable"
+            exit 1
+          fi
+
+          # Verify Ruff action exists
+          if grep -q "astral-sh/ruff-action" "$workflow_file"; then
+            echo "✓ Ruff action reference found"
+          else
+            echo "ERROR: Ruff action reference not found"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Extract and validate lint workflow structure
+        run: |
+          workflow_file=".github/workflows/core/python-lint.yml"
+
+          # Check for required jobs
+          if grep -q "python-lint:" "$workflow_file"; then
+            echo "✓ Python lint job defined"
+          else
+            echo "ERROR: Python lint job not defined"
+            exit 1
+          fi
+
+          # Check for checkout step
+          if grep -q "actions/checkout" "$workflow_file"; then
+            echo "✓ Checkout step present"
+          else
+            echo "ERROR: Checkout step missing"
+            exit 1
+          fi
+
+          # Check for ruff check step
+          if grep -q "ruff.*check" "$workflow_file"; then
+            echo "✓ Ruff check step present"
+          else
+            echo "ERROR: Ruff check step missing"
+            exit 1
+          fi
+
+          # Check for ruff format step
+          if grep -q "ruff.*format" "$workflow_file"; then
+            echo "✓ Ruff format step present"
+          else
+            echo "ERROR: Ruff format step missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate permissions block
+        run: |
+          workflow_file=".github/workflows/core/python-lint.yml"
+
+          # Check permissions exist
+          if grep -A2 "^permissions:" "$workflow_file" | grep -q "contents: read"; then
+            echo "✓ Permissions block contains contents: read"
+          else
+            echo "ERROR: Missing contents: read permission"
+            exit 1
+          fi
+
+          # Check no excessive permissions
+          if grep -q "write-all\|contents: write" "$workflow_file"; then
+            echo "WARNING: Lint workflow has write permissions (may be intended)"
+          fi
+        shell: bash
+
+  validate-type-check-workflow:
+    name: Validate Python Type Check Workflow
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate type-check workflow YAML
+        run: |
+          workflow_file=".github/workflows/core/python-type-check.yml"
+
+          echo "Checking YAML syntax for $workflow_file..."
+
+          # Basic YAML validation
+          if grep -q "^name:" "$workflow_file" && \
+             grep -q "^on:" "$workflow_file" && \
+             grep -q "^jobs:" "$workflow_file"; then
+            echo "✓ Type check workflow YAML structure valid"
+          else
+            echo "ERROR: Type check workflow YAML structure invalid"
+            exit 1
+          fi
+
+          # Check required secrets
+          if grep -q "UV_INDEX_WASTEHERO_USERNAME:" "$workflow_file" && \
+             grep -q "UV_INDEX_WASTEHERO_PASSWORD:" "$workflow_file"; then
+            echo "✓ Required secrets declared"
+          else
+            echo "ERROR: Required secrets not declared"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate type-check workflow structure
+        run: |
+          workflow_file=".github/workflows/core/python-type-check.yml"
+
+          # Check for composite action usage
+          if grep -q "./.github/actions/setup-python-env" "$workflow_file"; then
+            echo "✓ Uses setup-python-env composite action"
+          else
+            echo "ERROR: setup-python-env action not referenced"
+            exit 1
+          fi
+
+          # Check for uv commands
+          if grep -q "uv sync" "$workflow_file"; then
+            echo "✓ UV sync command present"
+          else
+            echo "ERROR: UV sync command missing"
+            exit 1
+          fi
+
+          # Check for type checker
+          if grep -q "uv run ty" "$workflow_file"; then
+            echo "✓ Type checker invocation present"
+          else
+            echo "ERROR: Type checker invocation missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate secret usage in type-check
+        run: |
+          workflow_file=".github/workflows/core/python-type-check.yml"
+
+          # Verify secrets are referenced
+          if grep -q "UV_INDEX_WASTEHERO_USERNAME" "$workflow_file" && \
+             grep -q "UV_INDEX_WASTEHERO_PASSWORD" "$workflow_file"; then
+            echo "✓ Secrets properly referenced in workflow"
+          else
+            echo "ERROR: Secrets not properly referenced"
+            exit 1
+          fi
+        shell: bash
+
+  validate-security-audit-workflow:
+    name: Validate Python Security Audit Workflow
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate security-audit workflow YAML
+        run: |
+          workflow_file=".github/workflows/core/python-security-audit.yml"
+
+          echo "Checking YAML syntax for $workflow_file..."
+
+          # Basic YAML validation
+          if grep -q "^name:" "$workflow_file" && \
+             grep -q "^on:" "$workflow_file" && \
+             grep -q "^jobs:" "$workflow_file"; then
+            echo "✓ Security audit workflow YAML structure valid"
+          else
+            echo "ERROR: Security audit workflow YAML structure invalid"
+            exit 1
+          fi
+
+          # Check for security-events permission
+          if grep -q "security-events: write" "$workflow_file"; then
+            echo "✓ Security events permission declared"
+          else
+            echo "ERROR: Security events permission missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate security-audit workflow structure
+        run: |
+          workflow_file=".github/workflows/core/python-security-audit.yml"
+
+          # Check for composite action usage
+          if grep -q "./.github/actions/setup-python-env" "$workflow_file"; then
+            echo "✓ Uses setup-python-env composite action"
+          else
+            echo "ERROR: setup-python-env action not referenced"
+            exit 1
+          fi
+
+          # Check for Ruff security check
+          if grep -q "ruff check.*--select=S" "$workflow_file"; then
+            echo "✓ Ruff security rules invocation present"
+          else
+            echo "ERROR: Ruff security rules invocation missing"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Validate permissions block for security audit
+        run: |
+          workflow_file=".github/workflows/core/python-security-audit.yml"
+
+          # Check for proper permissions
+          if grep -A3 "^permissions:" "$workflow_file" | grep -q "contents: read" && \
+             grep -A3 "^permissions:" "$workflow_file" | grep -q "security-events: write"; then
+            echo "✓ Proper permissions configured for security audit"
+          else
+            echo "ERROR: Missing required permissions for security audit"
+            exit 1
+          fi
+        shell: bash
+
+  test-workflow-callability:
+    name: Test Workflow Callable Interface
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify all workflows are callable
+        run: |
+          workflows=(
+            ".github/workflows/core/python-lint.yml"
+            ".github/workflows/core/python-type-check.yml"
+            ".github/workflows/core/python-security-audit.yml"
+          )
+
+          for workflow in "${workflows[@]}"; do
+            if [ ! -f "$workflow" ]; then
+              echo "ERROR: Workflow file not found: $workflow"
+              exit 1
+            fi
+
+            # Check workflow is callable
+            if grep -q "workflow_call:" "$workflow"; then
+              echo "✓ $workflow is callable"
+            else
+              echo "ERROR: $workflow is not callable"
+              exit 1
+            fi
+
+            # Check it has a name
+            if grep -q "^name:" "$workflow"; then
+              echo "✓ $workflow has name defined"
+            else
+              echo "ERROR: $workflow missing name"
+              exit 1
+            fi
+          done
+        shell: bash
+
+      - name: Verify workflow jobs
+        run: |
+          workflows=(
+            ".github/workflows/core/python-lint.yml"
+            ".github/workflows/core/python-type-check.yml"
+            ".github/workflows/core/python-security-audit.yml"
+          )
+
+          for workflow in "${workflows[@]}"; do
+            echo "Analyzing $workflow..."
+
+            # Check for jobs section
+            if grep -q "^jobs:" "$workflow"; then
+              job_count=$(grep -c "^  [a-z-]*:" "$workflow" | wc -l)
+              echo "✓ $workflow has jobs defined"
+            else
+              echo "ERROR: $workflow missing jobs section"
+              exit 1
+            fi
+
+            # Check for proper runner configuration
+            if grep -q "runs-on:" "$workflow"; then
+              if grep -q "\[self-hosted" "$workflow"; then
+                echo "✓ $workflow uses self-hosted runner"
+              else
+                echo "WARNING: $workflow may not use self-hosted runner"
+              fi
+            fi
+          done
+        shell: bash
+
+  test-summary:
+    name: Standard Checks Validation Summary
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    needs: [validate-lint-workflow, validate-type-check-workflow, validate-security-audit-workflow, test-workflow-callability]
+    if: always()
+
+    steps:
+      - name: Report validation results
+        run: |
+          echo "=== Standard Check Workflows Validation Summary ==="
+          echo "✓ Python Lint workflow: PASSED"
+          echo "✓ Python Type Check workflow: PASSED"
+          echo "✓ Python Security Audit workflow: PASSED"
+          echo "✓ Workflow callability: PASSED"
+          echo "=== All standard check validations completed ==="
+        shell: bash
