@@ -1,0 +1,34 @@
+# MongoDB 8.0
+name: MongoDB Service
+
+on:
+  workflow_call:
+    outputs:
+      mongodb-ready:
+        description: 'MongoDB service readiness status'
+        value: ${{ jobs.mongodb-service.outputs.mongodb-ready }}
+
+permissions:
+  contents: read
+
+jobs:
+  mongodb-service:
+    name: MongoDB Service
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    outputs:
+      mongodb-ready: ${{ steps.wait.outputs.ready }}
+
+    steps:
+      - name: Wait for MongoDB service
+        id: wait
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: mongodb
+          host: localhost
+          port: '27017'
+          max-retries: '30'
+
+      - name: Verify MongoDB connection
+        shell: bash
+        run: |
+          mongosh mongodb://localhost:27017/testdb --eval "db.adminCommand('ping')"
