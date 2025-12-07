@@ -1,0 +1,87 @@
+name: Python Review Gate
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+        description: GitHub repository (owner/repo format)
+      pr-number:
+        required: true
+        type: number
+        description: Pull request number
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+        description: Anthropic API key for Claude Code
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  python-review-gate:
+    name: Run Python Code Review
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout Claude agents
+        uses: actions/checkout@v4
+        with:
+          repository: WasteHero/claude-development-environment
+          path: .claude-dev-env
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Claude agents
+        run: |
+          mkdir -p .claude/agents
+          cp .claude-dev-env/agents/py-quality.md .claude/agents/
+          cp .claude-dev-env/agents/py-reviewer.md .claude/agents/
+
+      - name: Run Python code review with Claude
+        id: code-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Run @agent-py-reviewer to conduct a comprehensive code review of Python files in this pull request.
+
+            Focus on these areas:
+            - Code quality and best practices
+            - Performance issues
+            - Security vulnerabilities
+            - Test coverage
+
+            Return a structured response with:
+            - has_issues: boolean indicating if any issues were found
+            - summary: detailed description of findings categorized by type (or success message if none)
+            - issue_count: total number of issues found
+          claude_args: |
+            --model claude-haiku-4-5-20251001 --max-turns 5 --json-schema '{"type":"object","properties":{"has_issues":{"type":"boolean"},"summary":{"type":"string"},"issue_count":{"type":"number"}},"required":["has_issues","summary","issue_count"]}'
+
+      - name: Post review findings to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = JSON.parse('${{ steps.code-review.outputs.structured_output }}');
+            const [owner, repo] = '${{ inputs.project }}'.split('/');
+
+            github.rest.issues.createComment({
+              issue_number: ${{ inputs.pr-number }},
+              owner: owner,
+              repo: repo,
+              body: `## 🔍 Python Code Review\n\n${result.summary}\n\n**Issues Found**: ${result.issue_count}`
+            });
+
+      - name: Fail workflow if issues found
+        if: fromJSON(steps.code-review.outputs.structured_output).has_issues == true
+        run: |
+          echo "Review gate failed - ${{ fromJSON(steps.code-review.outputs.structured_output).issue_count }} issues detected during code review"
+          exit 1

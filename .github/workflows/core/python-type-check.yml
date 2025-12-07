@@ -1,0 +1,35 @@
+name: Python Type Check
+
+on:
+  workflow_call:
+    secrets:
+      UV_INDEX_WASTEHERO_USERNAME:
+        required: true
+        description: Username for WasteHero private PyPI index
+      UV_INDEX_WASTEHERO_PASSWORD:
+        required: true
+        description: Password for WasteHero private PyPI index
+
+permissions:
+  contents: read
+
+jobs:
+  python-type-check:
+    name: Type Check with pyright/mypy
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Install dependencies
+        run: |
+          uv sync --extra-index-url https://${{ secrets.UV_INDEX_WASTEHERO_USERNAME }}:${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}@pypi.wastehero.io/team/wastehero_libraries/+simple/
+        shell: bash
+
+      - name: Run type checker
+        run: uv run ty
+        shell: bash

@@ -1,0 +1,51 @@
+name: 'Setup Python with UV'
+description: 'Install Python and UV with dependency caching'
+author: 'WasteHero'
+
+inputs:
+  python-version:
+    description: 'Python version to install'
+    required: false
+    default: '3.13'
+  enable-cache:
+    description: 'Enable UV cache'
+    required: false
+    default: 'true'
+
+outputs:
+  python-path:
+    description: 'Path to Python executable'
+    value: ${{ steps.setup.outputs.python-path }}
+  cache-hit:
+    description: 'Whether cache hit occurred'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      id: setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install UV
+      shell: bash
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        echo "python-path=$(which python)" >> $GITHUB_OUTPUT
+
+    - name: Setup UV Cache
+      id: cache
+      if: ${{ inputs.enable-cache == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+branding:
+  icon: 'package'
+  color: 'blue'

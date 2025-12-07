@@ -1,0 +1,100 @@
+name: 'Wait for Service'
+description: 'Generic health check waiter for services'
+
+inputs:
+  service-type:
+    description: 'Service type (postgres, mongodb, nats, vault, valkey)'
+    required: true
+  host:
+    description: 'Service host'
+    required: false
+    default: 'localhost'
+  port:
+    description: 'Service port'
+    required: true
+  max-retries:
+    description: 'Maximum retry attempts'
+    required: false
+    default: '30'
+  retry-interval:
+    description: 'Seconds between retries'
+    required: false
+    default: '2'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Wait for ${{ inputs.service-type }}
+      shell: bash
+      run: |
+        SERVICE_TYPE="${{ inputs.service-type }}"
+        HOST="${{ inputs.host }}"
+        PORT="${{ inputs.port }}"
+        MAX_RETRIES="${{ inputs.max-retries }}"
+        RETRY_INTERVAL="${{ inputs.retry-interval }}"
+
+        echo "Waiting for ${SERVICE_TYPE} on ${HOST}:${PORT}..."
+
+        # Ensure netcat is available for network checks
+        if [[ "${SERVICE_TYPE}" =~ ^(nats|vault|valkey)$ ]]; then
+          if ! command -v nc &>/dev/null; then
+            echo "Installing netcat for network connectivity checks..."
+            sudo apt-get update >/dev/null 2>&1 || true
+            sudo apt-get install -y netcat-openbsd >/dev/null 2>&1 || sudo apt-get install -y netcat >/dev/null 2>&1 || {
+              echo "WARNING: netcat installation failed, attempting alternative method"
+            }
+          fi
+        fi
+
+        for i in $(seq 1 "${MAX_RETRIES}"); do
+          case "${SERVICE_TYPE}" in
+            postgres)
+              if command -v pg_isready &>/dev/null; then
+                if pg_isready -h "${HOST}" -p "${PORT}" >/dev/null 2>&1; then
+                  echo "${SERVICE_TYPE} is ready!"
+                  exit 0
+                fi
+              else
+                echo "ERROR: pg_isready not found. Install postgresql-client."
+                exit 1
+              fi
+              ;;
+            mongodb)
+              if command -v mongosh &>/dev/null; then
+                if mongosh --host "${HOST}" --port "${PORT}" --eval "db.adminCommand('ping')" &>/dev/null; then
+                  echo "${SERVICE_TYPE} is ready!"
+                  exit 0
+                fi
+              else
+                echo "ERROR: mongosh not found. Install mongodb-mongosh."
+                exit 1
+              fi
+              ;;
+            nats|vault|valkey)
+              # Try netcat first, then fallback to /dev/tcp
+              if command -v nc &>/dev/null; then
+                if nc -zv "${HOST}" "${PORT}" &>/dev/null; then
+                  echo "${SERVICE_TYPE} is ready!"
+                  exit 0
+                fi
+              else
+                # Fallback to bash /dev/tcp
+                if bash -c "</dev/tcp/${HOST}/${PORT}" &>/dev/null; then
+                  echo "${SERVICE_TYPE} is ready!"
+                  exit 0
+                fi
+              fi
+              ;;
+            *)
+              echo "ERROR: Unknown service type '${SERVICE_TYPE}'"
+              echo "Supported types: postgres, mongodb, nats, vault, valkey"
+              exit 1
+              ;;
+          esac
+
+          echo "Attempt ${i}/${MAX_RETRIES} failed, retrying in ${RETRY_INTERVAL}s..."
+          sleep "${RETRY_INTERVAL}"
+        done
+
+        echo "ERROR: ${SERVICE_TYPE} not ready after ${MAX_RETRIES} attempts"
+        exit 1
