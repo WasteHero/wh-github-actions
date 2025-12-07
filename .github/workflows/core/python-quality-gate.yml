@@ -1,0 +1,72 @@
+name: Python Quality Gate
+
+on:
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+        description: Anthropic API key for Claude Code
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  python-quality-gate:
+    name: Run Python Quality Analysis
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Python quality analysis with Claude
+        id: quality-analysis
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Run @agent-py-quality to identify all code quality issues in Python files.
+
+            Output findings in this format:
+            - Issue description
+            - File and line number
+            - How to fix
+
+            If NO issues found, output: "✅ No quality issues found"
+          claude_args: "--model claude-haiku-4-5-20251001 --max-turns 3"
+
+      - name: Post quality analysis to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `${{ steps.quality-analysis.outputs.result }}`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Python Quality Gate Analysis\n\n${output}`
+            });
+
+      - name: Determine quality gate result
+        id: gate-result
+        run: |
+          output="${{ steps.quality-analysis.outputs.result }}"
+
+          if [[ "$output" == *"No quality issues found"* ]]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "Quality gate PASSED: No issues found"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "Quality gate FAILED: Issues found"
+          fi
+
+      - name: Fail workflow if issues found
+        if: steps.gate-result.outputs.result == 'fail'
+        run: |
+          echo "Quality gate failed - issues detected in Python code"
+          exit 1
