@@ -23,6 +23,18 @@ Traditional automated code quality checks:
 | Python Type Check | [python-type-check-workflow.md](python-type-check-workflow.md) | Type validation |
 | Python Security Audit | [python-security-audit-workflow.md](python-security-audit-workflow.md) | Security scanning |
 
+### Service Composition Workflows (Phase 2)
+
+Service composition workflows validate the availability of external services (databases, caches, message brokers) in your CI/CD pipeline. These reusable workflows ensure services are fully operational before dependent tasks execute.
+
+| Workflow | Reference | Service | Port |
+|----------|-----------|---------|------|
+| PostgreSQL Service | [postgresql-service-workflow.md](postgresql-service-workflow.md) | PostgreSQL 17-Alpine | 5432 |
+| MongoDB Service | [mongodb-service-workflow.md](mongodb-service-workflow.md) | MongoDB 8.0 | 27017 |
+| ValKey Service | _Coming Phase 3_ | ValKey (Redis) | 6379 |
+| NATS Service | _Coming Phase 3_ | NATS Broker | 4222 |
+| Vault Service | _Coming Phase 4_ | HashiCorp Vault | 8200 |
+
 ## Composite Actions
 
 Reusable action building blocks:
@@ -143,36 +155,88 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-### With Service Dependencies
+### With PostgreSQL Service
+
+Using the new service composition workflows:
 
 ```yaml
 services:
   postgres:
-    image: postgres:16
+    image: postgres:17-alpine
     env:
+      POSTGRES_DB: testdb
       POSTGRES_PASSWORD: postgres
     options: >-
       --health-cmd pg_isready
-      --health-interval 10s
+      --health-interval 2s
       --health-timeout 5s
-      --health-retries 5
+      --health-retries 30
     ports:
       - 5432:5432
 
 jobs:
-  wait-for-db:
-    runs-on: ubuntu-latest
+  postgres-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/postgresql-service.yml@main
+
+  tests:
+    needs: postgres-service
+    if: ${{ needs.postgres-service.outputs.postgres-ready == 'true' }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
     steps:
       - uses: actions/checkout@v4
-      - uses: WasteHero/wastehero-github-actions/.github/actions/wait-for-service@main
-        with:
-          service-type: postgres
-          host: localhost
-          port: 5432
-      - run: echo "PostgreSQL is ready"
+      - run: npm test -- --integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 ```
 
-See: [wait-for-service-action.md](wait-for-service-action.md)
+See: [postgresql-service-workflow.md](postgresql-service-workflow.md)
+
+### With Multiple Service Dependencies
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 5432:5432
+
+  mongodb:
+    image: mongo:8.0
+    options: >-
+      --health-cmd mongosh
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 27017:27017
+
+jobs:
+  postgres-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/postgresql-service.yml@main
+
+  mongodb-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/mongodb-service.yml@main
+
+  integration-tests:
+    needs: [postgres-service, mongodb-service]
+    if: |
+      ${{ needs.postgres-service.outputs.postgres-ready == 'true' &&
+          needs.mongodb-service.outputs.mongodb-ready == 'true' }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test -- --integration
+```
+
+See: [postgresql-service-workflow.md](postgresql-service-workflow.md) and [mongodb-service-workflow.md](mongodb-service-workflow.md)
 
 ## Version References
 
@@ -268,13 +332,21 @@ With cache hits:
 
 Ready to dive into the details? Choose your workflow:
 
+### Code Quality & Analysis Workflows
+
 1. **[Python Lint Workflow](python-lint-workflow.md)** - Linting and formatting specs
 2. **[Python Type Check Workflow](python-type-check-workflow.md)** - Type checking specs
 3. **[Python Security Audit Workflow](python-security-audit-workflow.md)** - Security specs
 4. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs
 5. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs
-6. **[Setup Python Environment Action](setup-python-env-action.md)** - Action specs
-7. **[Wait for Service Action](wait-for-service-action.md)** - Service check specs
+
+### Service Composition Workflows
+
+6. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
+7. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
+
+### Configuration
+
 8. **[Required Secrets](required-secrets.md)** - Secret configuration specs
 
 ---
