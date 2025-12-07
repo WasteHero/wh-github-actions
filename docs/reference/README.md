@@ -22,6 +22,7 @@ Traditional automated code quality checks:
 | Python Lint | [python-lint-workflow.md](python-lint-workflow.md) | Linting and formatting |
 | Python Type Check | [python-type-check-workflow.md](python-type-check-workflow.md) | Type validation |
 | Python Security Audit | [python-security-audit-workflow.md](python-security-audit-workflow.md) | Security scanning |
+| Python Tests | [python-tests-workflow.md](python-tests-workflow.md) | Test execution with dynamic service composition |
 
 ### Service Composition Workflows (Phase 2)
 
@@ -342,6 +343,40 @@ jobs:
 
 See: [postgresql-service-workflow.md](postgresql-service-workflow.md), [mongodb-service-workflow.md](mongodb-service-workflow.md), [valkey-service-workflow.md](valkey-service-workflow.md), [nats-service-workflow.md](nats-service-workflow.md), and [vault-service-workflow.md](vault-service-workflow.md)
 
+### Python Tests with Dynamic Service Composition
+
+The Python Tests workflow simplifies test execution with optional services:
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 5432:5432
+
+jobs:
+  tests:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/python-tests.yml@main
+    with:
+      enable-postgresql: true
+      python-versions: '["3.11", "3.12", "3.13"]'
+      pytest-args: 'tests/ -v'
+      test-timeout: 30
+    secrets:
+      UV_INDEX_WASTEHERO_USERNAME: ${{ secrets.UV_INDEX_WASTEHERO_USERNAME }}
+      UV_INDEX_WASTEHERO_PASSWORD: ${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}
+```
+
+See: [python-tests-workflow.md](python-tests-workflow.md)
+
 ## Version References
 
 ### Workflow Versions
@@ -414,12 +449,14 @@ With cache hits:
 │   └── wait-for-service/
 │       └── action.yml
 └── workflows/
-    └── core/
-        ├── python-lint.yml
-        ├── python-type-check.yml
-        ├── python-security-audit.yml
-        ├── python-quality-gate.yml
-        └── python-review-gate.yml
+    ├── core/
+    │   ├── python-lint.yml
+    │   ├── python-type-check.yml
+    │   ├── python-security-audit.yml
+    │   ├── python-quality-gate.yml
+    │   └── python-review-gate.yml
+    └── services/
+        └── python-tests.yml
 ```
 
 ## Troubleshooting Quick Reference
@@ -444,17 +481,21 @@ Ready to dive into the details? Choose your workflow:
 4. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs
 5. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs
 
+### Test Execution Workflows
+
+6. **[Python Tests Workflow](python-tests-workflow.md)** - Python test execution with dynamic service composition
+
 ### Service Composition Workflows
 
-6. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
-7. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
-8. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
-9. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
-10. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
+7. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
+8. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
+9. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
+10. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
+11. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
 
 ### Configuration
 
-11. **[Required Secrets](required-secrets.md)** - Secret configuration specs
+12. **[Required Secrets](required-secrets.md)** - Secret configuration specs
 
 ---
 
