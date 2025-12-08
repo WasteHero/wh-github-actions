@@ -155,9 +155,22 @@ jobs:
         timeout-minutes: ${{ inputs.test-timeout }}
         shell: bash
         env:
-          POSTGRES_URL: ${{ env.POSTGRES_URL }}
-          MONGODB_URL: ${{ env.MONGODB_URL }}
-          VALKEY_URL: ${{ env.VALKEY_URL }}
-          NATS_URL: ${{ env.NATS_URL }}
-          VAULT_ADDR: ${{ env.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
+          # Database
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USER: iam
+          DATABASE_PASSWORD: iam
+          DATABASE_DATABASE: iam
+          # NATS
+          NATS_URL: nats://localhost:4222
+          # Vault
+          VAULT_URL: http://localhost:8200
+          VAULT_TOKEN: test-root-token
+          VAULT_ADDR: http://localhost:8200
+          # ValKey
+          VALKEY_URL: redis://localhost:6379
+          # MongoDB
+          MONGODB_URL: mongodb://localhost:27017/test_iam
+          # Service
+          SERVICE_NAME: iam-service
+          ENVIRONMENT: ci
