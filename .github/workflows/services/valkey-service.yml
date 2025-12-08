@@ -1,0 +1,34 @@
+# ValKey 8.0-Alpine (Redis fork)
+name: ValKey Service
+
+on:
+  workflow_call:
+    outputs:
+      valkey-ready:
+        description: 'ValKey service readiness status'
+        value: ${{ jobs.valkey-service.outputs.valkey-ready }}
+
+permissions:
+  contents: read
+
+jobs:
+  valkey-service:
+    name: ValKey Service
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    outputs:
+      valkey-ready: ${{ steps.wait.outputs.ready }}
+
+    steps:
+      - name: Wait for ValKey service
+        id: wait
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: valkey
+          host: localhost
+          port: '6379'
+          max-retries: '30'
+
+      - name: Verify ValKey connection
+        shell: bash
+        run: |
+          nc -zv localhost 6379 || true

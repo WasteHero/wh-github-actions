@@ -22,6 +22,19 @@ Traditional automated code quality checks:
 | Python Lint | [python-lint-workflow.md](python-lint-workflow.md) | Linting and formatting |
 | Python Type Check | [python-type-check-workflow.md](python-type-check-workflow.md) | Type validation |
 | Python Security Audit | [python-security-audit-workflow.md](python-security-audit-workflow.md) | Security scanning |
+| Python Tests | [python-tests-workflow.md](python-tests-workflow.md) | Test execution with dynamic service composition |
+
+### Service Composition Workflows (Phase 2)
+
+Service composition workflows validate the availability of external services (databases, caches, message brokers) in your CI/CD pipeline. These reusable workflows ensure services are fully operational before dependent tasks execute.
+
+| Workflow | Reference | Service | Port |
+|----------|-----------|---------|------|
+| PostgreSQL Service | [postgresql-service-workflow.md](postgresql-service-workflow.md) | PostgreSQL 17-Alpine | 5432 |
+| MongoDB Service | [mongodb-service-workflow.md](mongodb-service-workflow.md) | MongoDB 8.0 | 27017 |
+| ValKey Service | [valkey-service-workflow.md](valkey-service-workflow.md) | ValKey 8.0-Alpine (Redis fork) | 6379 |
+| NATS Service | [nats-service-workflow.md](nats-service-workflow.md) | NATS with JetStream | 4222 |
+| Vault Service | [vault-service-workflow.md](vault-service-workflow.md) | HashiCorp Vault 1.18 | 8200 |
 
 ## Composite Actions
 
@@ -143,36 +156,226 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-### With Service Dependencies
+### With PostgreSQL Service
+
+Using the new service composition workflows:
 
 ```yaml
 services:
   postgres:
-    image: postgres:16
+    image: postgres:17-alpine
     env:
+      POSTGRES_DB: testdb
       POSTGRES_PASSWORD: postgres
     options: >-
       --health-cmd pg_isready
-      --health-interval 10s
+      --health-interval 2s
       --health-timeout 5s
-      --health-retries 5
+      --health-retries 30
     ports:
       - 5432:5432
 
 jobs:
-  wait-for-db:
-    runs-on: ubuntu-latest
+  postgres-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/postgresql-service.yml@main
+
+  tests:
+    needs: postgres-service
+    if: ${{ needs.postgres-service.outputs.postgres-ready == 'true' }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
     steps:
       - uses: actions/checkout@v4
-      - uses: WasteHero/wastehero-github-actions/.github/actions/wait-for-service@main
-        with:
-          service-type: postgres
-          host: localhost
-          port: 5432
-      - run: echo "PostgreSQL is ready"
+      - run: npm test -- --integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 ```
 
-See: [wait-for-service-action.md](wait-for-service-action.md)
+See: [postgresql-service-workflow.md](postgresql-service-workflow.md)
+
+### With Multiple Service Dependencies
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 5432:5432
+
+  mongodb:
+    image: mongo:8.0
+    options: >-
+      --health-cmd mongosh
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 27017:27017
+
+jobs:
+  postgres-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/postgresql-service.yml@main
+
+  mongodb-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/mongodb-service.yml@main
+
+  integration-tests:
+    needs: [postgres-service, mongodb-service]
+    if: |
+      ${{ needs.postgres-service.outputs.postgres-ready == 'true' &&
+          needs.mongodb-service.outputs.mongodb-ready == 'true' }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test -- --integration
+```
+
+See: [postgresql-service-workflow.md](postgresql-service-workflow.md) and [mongodb-service-workflow.md](mongodb-service-workflow.md)
+
+### Complete Multi-Service Stack (Phase 2)
+
+Example with all Phase 2 services: PostgreSQL, MongoDB, ValKey cache, NATS messaging, and Vault secrets:
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 5432:5432
+
+  mongodb:
+    image: mongo:8.0
+    options: >-
+      --health-cmd mongosh
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 27017:27017
+
+  valkey:
+    image: valkey:8.0-alpine
+    options: >-
+      --health-cmd "redis-cli ping"
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 6379:6379
+
+  nats:
+    image: nats:latest
+    command: "nats-server -js"
+    options: >-
+      --health-cmd "nats-cli server check"
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 4222:4222
+      - 8222:8222
+
+  vault:
+    image: hashicorp/vault:1.18
+    env:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-token
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    options: >-
+      --health-cmd "vault status"
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 5
+      --cap-add IPC_LOCK
+    ports:
+      - 8200:8200
+
+jobs:
+  postgres-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/postgresql-service.yml@main
+
+  mongodb-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/mongodb-service.yml@main
+
+  valkey-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/valkey-service.yml@main
+
+  nats-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/nats-service.yml@main
+
+  vault-service:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/vault-service.yml@main
+
+  integration-tests:
+    needs: [postgres-service, mongodb-service, valkey-service, nats-service, vault-service]
+    if: |
+      ${{ needs.postgres-service.outputs.postgres-ready == 'true' &&
+          needs.mongodb-service.outputs.mongodb-ready == 'true' &&
+          needs.valkey-service.outputs.valkey-ready == 'true' &&
+          needs.nats-service.outputs.nats-ready == 'true' &&
+          needs.vault-service.outputs.vault-ready == 'true' }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      MONGODB_URI: mongodb://localhost:27017/testdb
+      REDIS_URL: redis://localhost:6379/0
+      NATS_URL: nats://localhost:4222
+      VAULT_ADDR: http://localhost:8200
+      VAULT_TOKEN: dev-token
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test -- --integration --all-services
+```
+
+See: [postgresql-service-workflow.md](postgresql-service-workflow.md), [mongodb-service-workflow.md](mongodb-service-workflow.md), [valkey-service-workflow.md](valkey-service-workflow.md), [nats-service-workflow.md](nats-service-workflow.md), and [vault-service-workflow.md](vault-service-workflow.md)
+
+### Python Tests with Dynamic Service Composition
+
+The Python Tests workflow simplifies test execution with optional services:
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 2s
+      --health-timeout 5s
+      --health-retries 30
+    ports:
+      - 5432:5432
+
+jobs:
+  tests:
+    uses: WasteHero/wastehero-github-actions/.github/workflows/services/python-tests.yml@main
+    with:
+      enable-postgresql: true
+      python-versions: '["3.11", "3.12", "3.13"]'
+      pytest-args: 'tests/ -v'
+      test-timeout: 30
+    secrets:
+      UV_INDEX_WASTEHERO_USERNAME: ${{ secrets.UV_INDEX_WASTEHERO_USERNAME }}
+      UV_INDEX_WASTEHERO_PASSWORD: ${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}
+```
+
+See: [python-tests-workflow.md](python-tests-workflow.md)
 
 ## Version References
 
@@ -246,12 +449,14 @@ With cache hits:
 │   └── wait-for-service/
 │       └── action.yml
 └── workflows/
-    └── core/
-        ├── python-lint.yml
-        ├── python-type-check.yml
-        ├── python-security-audit.yml
-        ├── python-quality-gate.yml
-        └── python-review-gate.yml
+    ├── core/
+    │   ├── python-lint.yml
+    │   ├── python-type-check.yml
+    │   ├── python-security-audit.yml
+    │   ├── python-quality-gate.yml
+    │   └── python-review-gate.yml
+    └── services/
+        └── python-tests.yml
 ```
 
 ## Troubleshooting Quick Reference
@@ -268,14 +473,29 @@ With cache hits:
 
 Ready to dive into the details? Choose your workflow:
 
+### Code Quality & Analysis Workflows
+
 1. **[Python Lint Workflow](python-lint-workflow.md)** - Linting and formatting specs
 2. **[Python Type Check Workflow](python-type-check-workflow.md)** - Type checking specs
 3. **[Python Security Audit Workflow](python-security-audit-workflow.md)** - Security specs
 4. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs
 5. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs
-6. **[Setup Python Environment Action](setup-python-env-action.md)** - Action specs
-7. **[Wait for Service Action](wait-for-service-action.md)** - Service check specs
-8. **[Required Secrets](required-secrets.md)** - Secret configuration specs
+
+### Test Execution Workflows
+
+6. **[Python Tests Workflow](python-tests-workflow.md)** - Python test execution with dynamic service composition
+
+### Service Composition Workflows
+
+7. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
+8. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
+9. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
+10. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
+11. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
+
+### Configuration
+
+12. **[Required Secrets](required-secrets.md)** - Secret configuration specs
 
 ---
 

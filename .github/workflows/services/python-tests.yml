@@ -1,0 +1,137 @@
+name: Python Tests
+
+on:
+  workflow_call:
+    inputs:
+      enable-postgresql:
+        type: boolean
+        default: false
+        description: 'Enable PostgreSQL service dependency'
+
+      enable-mongodb:
+        type: boolean
+        default: false
+        description: 'Enable MongoDB service dependency'
+
+      enable-valkey:
+        type: boolean
+        default: false
+        description: 'Enable ValKey service dependency'
+
+      enable-nats:
+        type: boolean
+        default: false
+        description: 'Enable NATS service dependency'
+
+      enable-vault:
+        type: boolean
+        default: false
+        description: 'Enable HashiCorp Vault service dependency'
+
+      python-versions:
+        type: string
+        default: '["3.13"]'
+        description: 'JSON array of Python versions to test'
+
+      pytest-args:
+        type: string
+        default: 'tests/ -v'
+        description: 'Arguments passed to pytest'
+
+      test-timeout:
+        type: number
+        default: 30
+        description: 'Test job timeout in minutes'
+
+    secrets:
+      UV_INDEX_WASTEHERO_USERNAME:
+        required: true
+        description: 'WasteHero PyPI username'
+
+      UV_INDEX_WASTEHERO_PASSWORD:
+        required: true
+        description: 'WasteHero PyPI password'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test with Python ${{ matrix.python-version }}
+    runs-on: [self-hosted, linux, X64, kubernetes]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJson(inputs.python-versions) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Wait for PostgreSQL
+        if: inputs.enable-postgresql
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: 'postgres'
+          host: 'localhost'
+          port: '5432'
+          max-retries: 30
+
+      - name: Wait for MongoDB
+        if: inputs.enable-mongodb
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: 'mongodb'
+          host: 'localhost'
+          port: '27017'
+          max-retries: 30
+
+      - name: Wait for ValKey
+        if: inputs.enable-valkey
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: 'valkey'
+          host: 'localhost'
+          port: '6379'
+          max-retries: 30
+
+      - name: Wait for NATS
+        if: inputs.enable-nats
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: 'nats'
+          host: 'localhost'
+          port: '4222'
+          max-retries: 30
+
+      - name: Wait for Vault
+        if: inputs.enable-vault
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: 'vault'
+          host: 'localhost'
+          port: '8200'
+          max-retries: 30
+
+      - name: Install dependencies
+        run: |
+          uv sync --extra-index-url https://${{ secrets.UV_INDEX_WASTEHERO_USERNAME }}:${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}@pypi.wastehero.io/team/wastehero_libraries/+simple/
+        shell: bash
+
+      - name: Run tests
+        run: uv run pytest ${{ inputs.pytest-args }}
+        timeout-minutes: ${{ inputs.test-timeout }}
+        shell: bash
+        env:
+          POSTGRES_URL: ${{ env.POSTGRES_URL }}
+          MONGODB_URL: ${{ env.MONGODB_URL }}
+          VALKEY_URL: ${{ env.VALKEY_URL }}
+          NATS_URL: ${{ env.NATS_URL }}
+          VAULT_ADDR: ${{ env.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ env.VAULT_TOKEN }}

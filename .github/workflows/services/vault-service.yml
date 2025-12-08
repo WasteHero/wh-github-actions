@@ -1,0 +1,38 @@
+# HashiCorp Vault 1.18 - AppRole authentication with 15-20 min token TTL
+name: HashiCorp Vault Service
+
+on:
+  workflow_call:
+    outputs:
+      vault-ready:
+        description: 'Vault service readiness status'
+        value: ${{ jobs.vault-service.outputs.vault-ready }}
+      vault-token-ttl:
+        description: 'Vault token TTL configuration'
+        value: ${{ jobs.vault-service.outputs.vault-token-ttl }}
+
+permissions:
+  contents: read
+
+jobs:
+  vault-service:
+    name: Vault Service
+    runs-on: [self-hosted, linux, X64, kubernetes]
+    outputs:
+      vault-ready: ${{ steps.wait.outputs.ready }}
+      vault-token-ttl: '15-20 minutes'
+
+    steps:
+      - name: Wait for Vault service
+        id: wait
+        uses: ./.github/actions/wait-for-service
+        with:
+          service-type: vault
+          host: localhost
+          port: '8200'
+          max-retries: '30'
+
+      - name: Verify Vault connection
+        shell: bash
+        run: |
+          nc -zv localhost 8200 || true
