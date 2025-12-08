@@ -69,55 +69,168 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-python-env
+      # Inline setup-python-env composite action
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install UV
+        shell: bash
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Setup UV Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      # Inline wait-for-service for PostgreSQL
       - name: Wait for PostgreSQL
         if: inputs.enable-postgresql
-        uses: ./.github/actions/wait-for-service
-        with:
-          service-type: 'postgres'
-          host: 'localhost'
-          port: '5432'
-          max-retries: 30
+        shell: bash
+        run: |
+          echo "Waiting for PostgreSQL on localhost:5432..."
+          for i in $(seq 1 30); do
+            if command -v pg_isready &>/dev/null; then
+              if pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
+                echo "PostgreSQL is ready!"
+                exit 0
+              fi
+            else
+              echo "ERROR: pg_isready not found. Install postgresql-client."
+              exit 1
+            fi
+            echo "Attempt ${i}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+          echo "ERROR: PostgreSQL not ready after 30 attempts"
+          exit 1
 
+      # Inline wait-for-service for MongoDB
       - name: Wait for MongoDB
         if: inputs.enable-mongodb
-        uses: ./.github/actions/wait-for-service
-        with:
-          service-type: 'mongodb'
-          host: 'localhost'
-          port: '27017'
-          max-retries: 30
+        shell: bash
+        run: |
+          echo "Waiting for MongoDB on localhost:27017..."
+          for i in $(seq 1 30); do
+            if command -v mongosh &>/dev/null; then
+              if mongosh --host localhost --port 27017 --eval "db.adminCommand('ping')" &>/dev/null; then
+                echo "MongoDB is ready!"
+                exit 0
+              fi
+            else
+              echo "ERROR: mongosh not found. Install mongodb-mongosh."
+              exit 1
+            fi
+            echo "Attempt ${i}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+          echo "ERROR: MongoDB not ready after 30 attempts"
+          exit 1
 
+      # Inline wait-for-service for ValKey
       - name: Wait for ValKey
         if: inputs.enable-valkey
-        uses: ./.github/actions/wait-for-service
-        with:
-          service-type: 'valkey'
-          host: 'localhost'
-          port: '6379'
-          max-retries: 30
+        shell: bash
+        run: |
+          echo "Waiting for ValKey on localhost:6379..."
 
+          # Ensure netcat is available
+          if ! command -v nc &>/dev/null; then
+            echo "Installing netcat for network connectivity checks..."
+            sudo apt-get update >/dev/null 2>&1 || true
+            sudo apt-get install -y netcat-openbsd >/dev/null 2>&1 || sudo apt-get install -y netcat >/dev/null 2>&1 || true
+          fi
+
+          for i in $(seq 1 30); do
+            if command -v nc &>/dev/null; then
+              if nc -zv localhost 6379 &>/dev/null; then
+                echo "ValKey is ready!"
+                exit 0
+              fi
+            else
+              # Fallback to bash /dev/tcp
+              if bash -c "</dev/tcp/localhost/6379" &>/dev/null; then
+                echo "ValKey is ready!"
+                exit 0
+              fi
+            fi
+            echo "Attempt ${i}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+          echo "ERROR: ValKey not ready after 30 attempts"
+          exit 1
+
+      # Inline wait-for-service for NATS
       - name: Wait for NATS
         if: inputs.enable-nats
-        uses: ./.github/actions/wait-for-service
-        with:
-          service-type: 'nats'
-          host: 'localhost'
-          port: '4222'
-          max-retries: 30
+        shell: bash
+        run: |
+          echo "Waiting for NATS on localhost:4222..."
 
+          # Ensure netcat is available
+          if ! command -v nc &>/dev/null; then
+            echo "Installing netcat for network connectivity checks..."
+            sudo apt-get update >/dev/null 2>&1 || true
+            sudo apt-get install -y netcat-openbsd >/dev/null 2>&1 || sudo apt-get install -y netcat >/dev/null 2>&1 || true
+          fi
+
+          for i in $(seq 1 30); do
+            if command -v nc &>/dev/null; then
+              if nc -zv localhost 4222 &>/dev/null; then
+                echo "NATS is ready!"
+                exit 0
+              fi
+            else
+              # Fallback to bash /dev/tcp
+              if bash -c "</dev/tcp/localhost/4222" &>/dev/null; then
+                echo "NATS is ready!"
+                exit 0
+              fi
+            fi
+            echo "Attempt ${i}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+          echo "ERROR: NATS not ready after 30 attempts"
+          exit 1
+
+      # Inline wait-for-service for Vault
       - name: Wait for Vault
         if: inputs.enable-vault
-        uses: ./.github/actions/wait-for-service
-        with:
-          service-type: 'vault'
-          host: 'localhost'
-          port: '8200'
-          max-retries: 30
+        shell: bash
+        run: |
+          echo "Waiting for Vault on localhost:8200..."
+
+          # Ensure netcat is available
+          if ! command -v nc &>/dev/null; then
+            echo "Installing netcat for network connectivity checks..."
+            sudo apt-get update >/dev/null 2>&1 || true
+            sudo apt-get install -y netcat-openbsd >/dev/null 2>&1 || sudo apt-get install -y netcat >/dev/null 2>&1 || true
+          fi
+
+          for i in $(seq 1 30); do
+            if command -v nc &>/dev/null; then
+              if nc -zv localhost 8200 &>/dev/null; then
+                echo "Vault is ready!"
+                exit 0
+              fi
+            else
+              # Fallback to bash /dev/tcp
+              if bash -c "</dev/tcp/localhost/8200" &>/dev/null; then
+                echo "Vault is ready!"
+                exit 0
+              fi
+            fi
+            echo "Attempt ${i}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+          echo "ERROR: Vault not ready after 30 attempts"
+          exit 1
 
       - name: Install dependencies
         run: |
