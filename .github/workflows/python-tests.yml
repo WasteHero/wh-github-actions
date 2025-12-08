@@ -69,13 +69,13 @@ jobs:
       postgres:
         image: ${{ inputs.enable-postgresql && 'postgres:17-alpine' || '' }}
         env:
-          POSTGRES_DB: test_iam
-          POSTGRES_USER: test_iam
-          POSTGRES_PASSWORD: test_iam
+          POSTGRES_DB: iam
+          POSTGRES_USER: iam
+          POSTGRES_PASSWORD: iam
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U test_iam"
+          --health-cmd "pg_isready -U iam"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 20
