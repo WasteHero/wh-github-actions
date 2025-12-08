@@ -10,6 +10,7 @@ These workflows use Claude AI for intelligent code analysis:
 
 | Workflow | Reference | Purpose |
 |----------|-----------|---------|
+| Claude PR Review | [claude-pr-review-workflow.md](claude-pr-review-workflow.md) | Informational code feedback |
 | Python Quality Gate | [python-quality-gate-workflow.md](python-quality-gate-workflow.md) | AI code quality analysis |
 | Python Review Gate | [python-review-gate-workflow.md](python-review-gate-workflow.md) | Comprehensive code review |
 
@@ -426,11 +427,12 @@ Approximate execution times (on self-hosted K8s runners):
 
 | Workflow | Time | Notes |
 |----------|------|-------|
+| Claude PR Review | 30-90s | Informational, never blocks |
 | Python Lint | 30s | No dependencies needed |
 | Python Type Check | 60-120s | Includes dependency install |
 | Python Security Audit | 60-120s | Includes dependency install |
-| Python Quality Gate | 30-60s | Depends on code size |
-| Python Review Gate | 60-120s | Depends on code size |
+| Python Quality Gate | 30-60s | Depends on code size, blocks PR |
+| Python Review Gate | 60-120s | Depends on code size, blocks PR |
 
 ### Cache Performance
 
@@ -475,27 +477,28 @@ Ready to dive into the details? Choose your workflow:
 
 ### Code Quality & Analysis Workflows
 
-1. **[Python Lint Workflow](python-lint-workflow.md)** - Linting and formatting specs
-2. **[Python Type Check Workflow](python-type-check-workflow.md)** - Type checking specs
-3. **[Python Security Audit Workflow](python-security-audit-workflow.md)** - Security specs
-4. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs
-5. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs
+1. **[Claude PR Review Workflow](claude-pr-review-workflow.md)** - Informational AI feedback specs
+2. **[Python Lint Workflow](python-lint-workflow.md)** - Linting and formatting specs
+3. **[Python Type Check Workflow](python-type-check-workflow.md)** - Type checking specs
+4. **[Python Security Audit Workflow](python-security-audit-workflow.md)** - Security specs
+5. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs (blocking)
+6. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs (blocking)
 
 ### Test Execution Workflows
 
-6. **[Python Tests Workflow](python-tests-workflow.md)** - Python test execution with dynamic service composition
+7. **[Python Tests Workflow](python-tests-workflow.md)** - Python test execution with dynamic service composition
 
 ### Service Composition Workflows
 
-7. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
-8. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
-9. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
-10. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
-11. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
+8. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
+9. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
+10. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
+11. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
+12. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
 
 ### Configuration
 
-12. **[Required Secrets](required-secrets.md)** - Secret configuration specs
+13. **[Required Secrets](required-secrets.md)** - Secret configuration specs
 
 ---
 

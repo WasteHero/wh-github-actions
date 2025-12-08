@@ -1,0 +1,21 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "id": 1,
+    "number": 1,
+    "draft": false,
+    "title": "Test PR for Claude Review",
+    "body": "Test pull request for workflow validation",
+    "head": {
+      "ref": "feature/test",
+      "sha": "abc123def456"
+    },
+    "base": {
+      "ref": "main"
+    }
+  },
+  "repository": {
+    "name": "wastehero-github-actions",
+    "full_name": "WasteHero/wastehero-github-actions"
+  }
+}
