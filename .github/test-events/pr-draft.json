@@ -1,0 +1,21 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "id": 2,
+    "number": 2,
+    "draft": true,
+    "title": "Draft PR for Testing",
+    "body": "This is a draft pull request",
+    "head": {
+      "ref": "feature/draft-test",
+      "sha": "def456ghi789"
+    },
+    "base": {
+      "ref": "main"
+    }
+  },
+  "repository": {
+    "name": "wastehero-github-actions",
+    "full_name": "WasteHero/wastehero-github-actions"
+  }
+}
