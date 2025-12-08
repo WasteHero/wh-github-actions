@@ -65,6 +65,58 @@ jobs:
       matrix:
         python-version: ${{ fromJson(inputs.python-versions) }}
 
+    services:
+      postgres:
+        image: ${{ inputs.enable-postgresql && 'postgres:17-alpine' || '' }}
+        env:
+          POSTGRES_DB: test_iam
+          POSTGRES_USER: test_iam
+          POSTGRES_PASSWORD: test_iam
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_iam"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+
+      mongodb:
+        image: ${{ inputs.enable-mongodb && 'mongo:8.0' || '' }}
+        env:
+          MONGO_INITDB_DATABASE: test_iam
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      valkey:
+        image: ${{ inputs.enable-valkey && 'valkey/valkey:8.0-alpine' || '' }}
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+      nats:
+        image: ${{ inputs.enable-nats && 'nats:latest' || '' }}
+        env:
+          NATS_ARGS: "-js"
+        ports:
+          - 4222:4222
+
+      vault:
+        image: ${{ inputs.enable-vault && 'hashicorp/vault:1.18' || '' }}
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: test-root-token
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        ports:
+          - 8200:8200
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
