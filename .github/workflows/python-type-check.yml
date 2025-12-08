@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   python-type-check:
-    name: Type Check with pyright/mypy
+    name: Type Check with ty
     runs-on: [self-hosted, linux, X64, kubernetes]
 
     steps:
