@@ -4,6 +4,28 @@ This section helps you understand the *why* behind the WasteHero GitHub Actions 
 
 ## Understanding the Architecture
 
+### [AI-Powered Quality Gate Strategy](ai-gates-strategy.md)
+
+Understand the role and strategy behind AI quality gates in your pipeline.
+
+**Topics covered:**
+- What AI quality gates do
+- Blocking vs informational gates
+- The four-workflow architecture
+- Cost optimization
+- When to use which gates
+
+### [Standard Python Check Workflows Strategy](standard-checks-strategy.md)
+
+Understand the role of traditional code quality, type safety, and security checks.
+
+**Topics covered:**
+- What standard checks do
+- The three workflows (lint, type check, security)
+- Why they matter
+- Integration with AI gates
+- Customization options
+
 ### [Why AI Quality Gates First?](why-ai-quality-gates-first.md)
 
 Understand why the three-phase pipeline puts AI quality gates at the start.

@@ -929,7 +929,7 @@ review-gate:
 
 - **Python Quality Gate**: See [python-quality-gate-workflow.md](./reference/python-quality-gate-workflow.md) (CT-1179)
 - **Python Review Gate**: See [python-review-gate-workflow.md](./reference/python-review-gate-workflow.md) (CT-1183)
-- **AI Workflows Overview**: See [ai-quality-gates.md](./ai-quality-gates.md)
+- **AI Gates Strategy**: See [ai-gates-strategy.md](../explanation/ai-gates-strategy.md)
 - **Claude Development Environment**: https://github.com/WasteHero/claude-development-environment
 - **Parent Task**: CT-1168 (Foundation Workflows)
 
@@ -1085,7 +1085,8 @@ Best practice: Use Claude + human code review
 
 ## Related Documentation
 
-- **[AI-Powered Quality Gates Overview](../ai-quality-gates.md)** - Complete AI workflows guide
+- **[AI-Powered Quality Gate Strategy](../explanation/ai-gates-strategy.md)** - Understanding AI gates
+- **[Setting Up AI Quality Gates](../how-to-guides/setting-up-ai-quality-gates.md)** - How-to guide
 - **[Python Quality Gate Reference](python-quality-gate-workflow.md)** - CT-1179 (blocking quality analysis)
 - **[Python Review Gate Reference](python-review-gate-workflow.md)** - CT-1183 (blocking comprehensive review)
 - **[Python Lint Workflow](python-lint-workflow.md)** - CT-1180 (traditional linting)
@@ -1116,7 +1117,7 @@ Best practice: Use Claude + human code review
 
 ---
 
-**Questions?** See [How-To Guides](../how-to-guides/README.md) for common problems or review [AI-Powered Quality Gates](../ai-quality-gates.md) for workflow comparison.
+**Questions?** See [How-To Guides](../how-to-guides/README.md) for common problems or review [AI-Powered Quality Gate Strategy](../explanation/ai-gates-strategy.md) for workflow comparison.
 
 **Want to understand AI workflows?** Check [Explanation](../explanation/README.md) for conceptual background.
 

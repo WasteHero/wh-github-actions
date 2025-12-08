@@ -6,17 +6,20 @@ Unlike tutorials (which teach step-by-step), how-to guides assume you have basic
 
 ## By Problem
 
+### "I need AI-powered code reviews"
+→ [Setting Up AI Quality Gates](setting-up-ai-quality-gates.md)
+
+### "I need to set up lint, type check, and security audit"
+→ [Using Standard Check Workflows](using-standard-check-workflows.md)
+
 ### "I need to use only specific checks"
 → [Using Individual Workflow Components](using-individual-workflows.md)
-
-### "My workflows keep failing"
-→ [Debugging Workflow Failures](debugging-workflow-failures.md)
 
 ### "I want to customize my type checker"
 → [Configuring Type Checking](configuring-type-checking.md)
 
-### "I need AI-powered code reviews"
-→ [Setting Up AI Quality Gates](setting-up-ai-quality-gates.md)
+### "My workflows keep failing"
+→ [Debugging Workflow Failures](debugging-workflow-failures.md)
 
 ### "My security audit is too noisy"
 → [Suppressing Security Audit Findings](suppressing-security-audit-findings.md)
@@ -40,7 +43,17 @@ Unlike tutorials (which teach step-by-step), how-to guides assume you have basic
 - [Understanding AI Gate Results](understanding-ai-gate-results.md)
 - [Troubleshooting AI Gates](troubleshooting-ai-gates.md)
 
-### Linting
+### Standard Python Checks
+- [Using Standard Check Workflows](using-standard-check-workflows.md) - Complete guide to all standard checks
+  - [Configuring Linting Rules](configuring-linting-rules.md)
+  - [Understanding Lint Output](understanding-lint-output.md)
+  - [Fixing Common Lint Errors](fixing-common-lint-errors.md)
+  - [Configuring Type Checking](configuring-type-checking.md)
+  - [Understanding Type Errors](understanding-type-errors.md)
+  - [Understanding Security Findings](understanding-security-findings.md)
+  - [Suppressing Security Audit Findings](suppressing-security-audit-findings.md)
+
+### Linting (Deprecated - use Standard Check Workflows)
 - [Configuring Linting Rules](configuring-linting-rules.md)
 - [Understanding Lint Output](understanding-lint-output.md)
 - [Fixing Common Lint Errors](fixing-common-lint-errors.md)
@@ -81,10 +94,11 @@ Unlike tutorials (which teach step-by-step), how-to guides assume you have basic
 
 | Task | Guide |
 |------|-------|
-| Add linting to my project | [Using Individual Workflow Components](using-individual-workflows.md) |
-| Fix a failing workflow | [Debugging Workflow Failures](debugging-workflow-failures.md) |
-| Enable type checking | [Configuring Type Checking](configuring-type-checking.md) |
+| Set up all standard checks (lint, type, security) | [Using Standard Check Workflows](using-standard-check-workflows.md) |
 | Set up AI reviews | [Setting Up AI Quality Gates](setting-up-ai-quality-gates.md) |
+| Add linting to my project | [Using Individual Workflow Components](using-individual-workflows.md) |
+| Enable type checking | [Configuring Type Checking](configuring-type-checking.md) |
+| Fix a failing workflow | [Debugging Workflow Failures](debugging-workflow-failures.md) |
 | Ignore a security warning | [Suppressing Security Audit Findings](suppressing-security-audit-findings.md) |
 | Understand a test failure | [Understanding Check Results](understanding-check-results.md) |
 | Speed up my checks | [Optimizing Workflow Performance](optimizing-workflow-performance.md) |

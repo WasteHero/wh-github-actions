@@ -6,14 +6,19 @@ Complete technical specifications for all workflows, actions, and configurations
 
 ### AI-Powered Workflows
 
-These workflows use Claude AI for intelligent code analysis:
+These workflows use Claude AI for intelligent code analysis. Choose blocking gates for quality enforcement or informational workflows for feedback and learning.
 
-| Workflow | Reference | Purpose |
-|----------|-----------|---------|
-| Claude PR Review | [claude-pr-review-workflow.md](claude-pr-review-workflow.md) | Informational code feedback |
-| Claude Custom Agents | [claude-custom-agent-workflow.md](claude-custom-agent-workflow.md) | On-demand AI assistance via @claude mentions |
-| Python Quality Gate | [python-quality-gate-workflow.md](python-quality-gate-workflow.md) | AI code quality analysis |
-| Python Review Gate | [python-review-gate-workflow.md](python-review-gate-workflow.md) | Comprehensive code review |
+| Workflow | Reference | Type | Purpose | Trigger |
+|----------|-----------|------|---------|---------|
+| Claude PR Review | [claude-pr-review-workflow.md](claude-pr-review-workflow.md) | Informational | Non-blocking code feedback with learning focus | Auto (every PR) |
+| Claude Custom Agents | [claude-custom-agent-workflow.md](claude-custom-agent-workflow.md) | Informational | On-demand AI assistance via @claude mentions | Manual (@claude) |
+| Python Quality Gate | [python-quality-gate-workflow.md](python-quality-gate-workflow.md) | BLOCKING | AI code quality analysis & enforcement | workflow_call |
+| Python Review Gate | [python-review-gate-workflow.md](python-review-gate-workflow.md) | BLOCKING | Comprehensive code review & enforcement | workflow_call |
+
+**Blocking vs Informational:**
+- **BLOCKING**: Must pass to merge PR (gates prevent merge if issues found)
+- **Informational**: Never blocks (provides feedback regardless of merge status)
+- **Recommended**: Use both layers for comprehensive quality and learning
 
 ### Standard Check Workflows
 

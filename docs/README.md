@@ -17,10 +17,11 @@ This documentation follows the **Diataxis framework**, which organizes content i
 **For users solving specific problems:** Task-focused instructions for accomplishing common goals.
 
 - [How-To Guides Index](how-to-guides/README.md) - All problem-solving guides
+- [Setting Up AI Quality Gates](how-to-guides/setting-up-ai-quality-gates.md) - Enable Claude-powered reviews
+- [Using Standard Check Workflows](how-to-guides/using-standard-check-workflows.md) - Lint, type check, and security audit
 - [Using Individual Workflow Components](how-to-guides/using-individual-workflows.md) - Pick and choose what you need
 - [Configuring Type Checking](how-to-guides/configuring-type-checking.md) - Customize type checker settings
 - [Debugging Workflow Failures](how-to-guides/debugging-workflow-failures.md) - Troubleshoot common issues
-- [Setting Up AI Quality Gates](how-to-guides/setting-up-ai-quality-gates.md) - Enable Claude-powered reviews
 
 ### 3. Reference - Information-Oriented
 **For users looking up facts:** Complete technical specifications and API documentation.
