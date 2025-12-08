@@ -155,22 +155,37 @@ jobs:
         timeout-minutes: ${{ inputs.test-timeout }}
         shell: bash
         env:
-          # Database
+          # Service Settings
+          SERVICE_NAME: iam-service
+          ENVIRONMENT: ci
+          # Database Settings (PostgreSQL)
           DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
+          DATABASE_PORT: "5432"
           DATABASE_USER: iam
           DATABASE_PASSWORD: iam
           DATABASE_DATABASE: iam
-          # NATS
-          NATS_URL: nats://localhost:4222
-          # Vault
+          DATABASE_MINSIZE: "1"
+          DATABASE_MAXSIZE: "5"
+          DATABASE_MAX_QUERIES: "50000"
+          DATABASE_MAX_INACTIVE_CONNECTION_LIFETIME: "300.0"
+          DATABASE_SSL: "false"
+          # JWT Settings
+          JWT_ALGORITHM: RS256
+          JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+          JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+          # Vault Settings
           VAULT_URL: http://localhost:8200
           VAULT_TOKEN: test-root-token
-          VAULT_ADDR: http://localhost:8200
-          # ValKey
-          VALKEY_URL: redis://localhost:6379
-          # MongoDB
-          MONGODB_URL: mongodb://localhost:27017/test_iam
-          # Service
-          SERVICE_NAME: iam-service
-          ENVIRONMENT: ci
+          VAULT_TRANSIT_MOUNT_POINT: transit
+          # NATS Settings
+          NATS_URL: nats://localhost:4222
+          # Structlog Settings
+          STRUCTLOG_LOG_LEVEL: INFO
+          STRUCTLOG_LOG_FORMAT: json
+          # Tortoise Test DB (used by fixtures)
+          TORTOISE_TEST_DB: postgres://iam:iam@localhost:5432/test_iam_{}
+          # ValKey Settings
+          VALKEY_URL: redis://localhost:6379/15
+          VALKEY_DB: "15"
+          VALKEY_MAX_CONNECTIONS: "10"
+          VALKEY_DEFAULT_TTL: "300"
