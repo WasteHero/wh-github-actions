@@ -1,0 +1,15 @@
+{
+  "action": "created",
+  "pull_request": {
+    "number": 99,
+    "title": "Add new feature"
+  },
+  "comment": {
+    "id": 654321,
+    "body": "@claude @agent-py-reviewer analyze this for quality issues"
+  },
+  "repository": {
+    "name": "wastehero-github-actions",
+    "full_name": "WasteHero/wastehero-github-actions"
+  }
+}

@@ -102,7 +102,7 @@ jobs:
       UV_INDEX_WASTEHERO_PASSWORD: ${{ secrets.UV_INDEX_WASTEHERO_PASSWORD }}
 ```
 
-For detailed documentation, see [standard-check-workflows.md](docs/standard-check-workflows.md)
+For detailed documentation, see [Using Standard Check Workflows](docs/how-to-guides/using-standard-check-workflows.md)
 
 ### Core AI Quality Gate Workflows
 
@@ -132,7 +132,7 @@ Comprehensive Python code review using Claude AI.
 
 **Output:** Posts code review findings to PR with categorized issues and count
 
-For detailed documentation, see [ai-quality-gates.md](docs/ai-quality-gates.md)
+For detailed documentation, see [Setting Up AI Quality Gates](docs/how-to-guides/setting-up-ai-quality-gates.md)
 
 ## Required Secrets
 

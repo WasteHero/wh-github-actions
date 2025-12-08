@@ -1,0 +1,15 @@
+{
+  "action": "created",
+  "issue": {
+    "number": 50,
+    "title": "Regular Comment"
+  },
+  "comment": {
+    "id": 789012,
+    "body": "This is a regular comment without the bot mention"
+  },
+  "repository": {
+    "name": "wastehero-github-actions",
+    "full_name": "WasteHero/wastehero-github-actions"
+  }
+}
