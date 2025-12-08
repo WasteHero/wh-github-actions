@@ -1,0 +1,15 @@
+{
+  "action": "created",
+  "issue": {
+    "number": 42,
+    "title": "Test Issue"
+  },
+  "comment": {
+    "id": 123456,
+    "body": "@claude please review this code for performance issues"
+  },
+  "repository": {
+    "name": "wastehero-github-actions",
+    "full_name": "WasteHero/wastehero-github-actions"
+  }
+}

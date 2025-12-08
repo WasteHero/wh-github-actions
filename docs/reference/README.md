@@ -11,6 +11,7 @@ These workflows use Claude AI for intelligent code analysis:
 | Workflow | Reference | Purpose |
 |----------|-----------|---------|
 | Claude PR Review | [claude-pr-review-workflow.md](claude-pr-review-workflow.md) | Informational code feedback |
+| Claude Custom Agents | [claude-custom-agent-workflow.md](claude-custom-agent-workflow.md) | On-demand AI assistance via @claude mentions |
 | Python Quality Gate | [python-quality-gate-workflow.md](python-quality-gate-workflow.md) | AI code quality analysis |
 | Python Review Gate | [python-review-gate-workflow.md](python-review-gate-workflow.md) | Comprehensive code review |
 
@@ -478,27 +479,28 @@ Ready to dive into the details? Choose your workflow:
 ### Code Quality & Analysis Workflows
 
 1. **[Claude PR Review Workflow](claude-pr-review-workflow.md)** - Informational AI feedback specs
-2. **[Python Lint Workflow](python-lint-workflow.md)** - Linting and formatting specs
-3. **[Python Type Check Workflow](python-type-check-workflow.md)** - Type checking specs
-4. **[Python Security Audit Workflow](python-security-audit-workflow.md)** - Security specs
-5. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs (blocking)
-6. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs (blocking)
+2. **[Claude Custom Agent Workflow](claude-custom-agent-workflow.md)** - On-demand AI assistance via @claude mentions
+3. **[Python Lint Workflow](python-lint-workflow.md)** - Linting and formatting specs
+4. **[Python Type Check Workflow](python-type-check-workflow.md)** - Type checking specs
+5. **[Python Security Audit Workflow](python-security-audit-workflow.md)** - Security specs
+6. **[Python Quality Gate Workflow](python-quality-gate-workflow.md)** - AI quality specs (blocking)
+7. **[Python Review Gate Workflow](python-review-gate-workflow.md)** - AI review specs (blocking)
 
 ### Test Execution Workflows
 
-7. **[Python Tests Workflow](python-tests-workflow.md)** - Python test execution with dynamic service composition
+8. **[Python Tests Workflow](python-tests-workflow.md)** - Python test execution with dynamic service composition
 
 ### Service Composition Workflows
 
-8. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
-9. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
-10. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
-11. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
-12. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
+9. **[PostgreSQL Service Workflow](postgresql-service-workflow.md)** - PostgreSQL readiness specs
+10. **[MongoDB Service Workflow](mongodb-service-workflow.md)** - MongoDB readiness specs
+11. **[ValKey Service Workflow](valkey-service-workflow.md)** - ValKey (Redis fork) readiness specs
+12. **[NATS Service Workflow](nats-service-workflow.md)** - NATS message broker with JetStream specs
+13. **[Vault Service Workflow](vault-service-workflow.md)** - HashiCorp Vault secrets management specs
 
 ### Configuration
 
-13. **[Required Secrets](required-secrets.md)** - Secret configuration specs
+14. **[Required Secrets](required-secrets.md)** - Secret configuration specs
 
 ---
 
