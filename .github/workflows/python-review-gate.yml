@@ -66,22 +66,32 @@ jobs:
             --model claude-haiku-4-5-20251001 --max-turns 5 --json-schema '{"type":"object","properties":{"has_issues":{"type":"boolean"},"summary":{"type":"string"},"issue_count":{"type":"number"}},"required":["has_issues","summary","issue_count"]}'
 
       - name: Post review findings to PR
-        if: always()
+        if: always() && steps.code-review.outputs.structured_output != ''
         uses: actions/github-script@v7
         with:
           script: |
-            const result = JSON.parse('${{ steps.code-review.outputs.structured_output }}');
-            const [owner, repo] = '${{ inputs.project }}'.split('/');
+            try {
+              const output = '${{ steps.code-review.outputs.structured_output }}';
+              if (!output || output === '') {
+                console.log('No structured output from code review');
+                return;
+              }
+              const result = JSON.parse(output);
+              const [owner, repo] = '${{ inputs.project }}'.split('/');
 
-            github.rest.issues.createComment({
-              issue_number: ${{ inputs.pr-number }},
-              owner: owner,
-              repo: repo,
-              body: `## 🔍 Python Code Review\n\n${result.summary}\n\n**Issues Found**: ${result.issue_count}`
-            });
+              await github.rest.issues.createComment({
+                issue_number: ${{ inputs.pr-number }},
+                owner: owner,
+                repo: repo,
+                body: `## 🔍 Python Code Review\n\n${result.summary}\n\n**Issues Found**: ${result.issue_count}`
+              });
+            } catch (error) {
+              console.error('Failed to parse or post code review:', error);
+              core.setFailed('Code review output parsing failed');
+            }
 
       - name: Fail workflow if issues found
-        if: fromJSON(steps.code-review.outputs.structured_output).has_issues == true
+        if: steps.code-review.outputs.structured_output != '' && fromJSON(steps.code-review.outputs.structured_output).has_issues == true
         run: |
           echo "Review gate failed - ${{ fromJSON(steps.code-review.outputs.structured_output).issue_count }} issues detected during code review"
           exit 1
