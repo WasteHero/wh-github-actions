@@ -48,5 +48,5 @@ jobs:
         shell: bash
 
       - name: Run type checker
-        run: uv run ty
+        run: uv run ty check
         shell: bash
