@@ -15,6 +15,9 @@ on:
       ANTHROPIC_API_KEY:
         required: true
         description: Anthropic API key for Claude Code
+      GH_TOKEN:
+        required: false
+        description: GitHub token with access to private repositories (for claude-development-environment)
 
 permissions:
   contents: read
@@ -36,7 +39,7 @@ jobs:
         with:
           repository: WasteHero/claude-development-environment
           path: .claude-dev-env
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Setup Claude agents
         run: |
