@@ -48,54 +48,63 @@ jobs:
           cp .claude-dev-env/agents/py-quality.md .claude/agents/
           cp .claude-dev-env/agents/py-reviewer.md .claude/agents/
 
+      - name: Install Claude Code
+        run: |
+          curl -fsSL https://claude.ai/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Run Python code review with Claude
         id: code-review
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Run @agent-py-reviewer to conduct a comprehensive code review of Python files in this pull request.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Run @agent-py-reviewer for comprehensive code review
+          claude --print \
+            --output-format text \
+            --no-session-persistence \
+            --model claude-haiku-4-5-20251001 \
+            --max-turns 10 \
+            "Run @agent-py-reviewer to conduct a comprehensive code review of Python files. Focus on code quality, best practices, performance, security, and test coverage." \
+            > /tmp/code-review.txt 2>&1
 
-            Focus on these areas:
-            - Code quality and best practices
-            - Performance issues
-            - Security vulnerabilities
-            - Test coverage
+          # Check if review completed
+          if [ ! -s /tmp/code-review.txt ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+            echo "summary=Code review failed to complete" >> $GITHUB_OUTPUT
+            exit 1
+          fi
 
-            Return a structured response with:
-            - has_issues: boolean indicating if any issues were found
-            - summary: detailed description of findings categorized by type (or success message if none)
-            - issue_count: total number of issues found
-          claude_args: |
-            --model claude-haiku-4-5-20251001 --max-turns 5 --json-schema '{"type":"object","properties":{"has_issues":{"type":"boolean"},"summary":{"type":"string"},"issue_count":{"type":"number"}},"required":["has_issues","summary","issue_count"]}'
+          # Parse the output to determine if issues were found
+          REVIEW=$(cat /tmp/code-review.txt)
+          if echo "$REVIEW" | grep -qi "no issues\|looks good\|all checks passed\|excellent"; then
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$REVIEW" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$REVIEW" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Post review findings to PR
-        if: always() && steps.code-review.outputs.structured_output != ''
+        if: always() && steps.code-review.outputs.summary != ''
         uses: actions/github-script@v7
         with:
           script: |
-            try {
-              const output = '${{ steps.code-review.outputs.structured_output }}';
-              if (!output || output === '') {
-                console.log('No structured output from code review');
-                return;
-              }
-              const result = JSON.parse(output);
-              const [owner, repo] = '${{ inputs.project }}'.split('/');
+            const summary = `${{ steps.code-review.outputs.summary }}`;
+            const [owner, repo] = '${{ inputs.project }}'.split('/');
 
-              await github.rest.issues.createComment({
-                issue_number: ${{ inputs.pr-number }},
-                owner: owner,
-                repo: repo,
-                body: `## 🔍 Python Code Review\n\n${result.summary}\n\n**Issues Found**: ${result.issue_count}`
-              });
-            } catch (error) {
-              console.error('Failed to parse or post code review:', error);
-              core.setFailed('Code review output parsing failed');
-            }
+            await github.rest.issues.createComment({
+              issue_number: ${{ inputs.pr-number }},
+              owner: owner,
+              repo: repo,
+              body: `## 🔍 Python Code Review\n\n${summary}`
+            });
 
       - name: Fail workflow if issues found
-        if: steps.code-review.outputs.structured_output != '' && fromJSON(steps.code-review.outputs.structured_output).has_issues == true
+        if: steps.code-review.outputs.has_issues == 'true'
         run: |
-          echo "Review gate failed - ${{ fromJSON(steps.code-review.outputs.structured_output).issue_count }} issues detected during code review"
+          echo "Review gate failed - issues detected during code review"
           exit 1

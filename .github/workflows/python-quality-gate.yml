@@ -48,48 +48,63 @@ jobs:
           cp .claude-dev-env/agents/py-quality.md .claude/agents/
           cp .claude-dev-env/agents/py-reviewer.md .claude/agents/
 
+      - name: Install Claude Code
+        run: |
+          curl -fsSL https://claude.ai/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Run Python quality analysis with Claude
         id: quality-analysis
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Run @agent-py-quality to identify all code quality issues in Python files.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Run @agent-py-quality for code quality analysis
+          claude --print \
+            --output-format text \
+            --no-session-persistence \
+            --model claude-haiku-4-5-20251001 \
+            --max-turns 5 \
+            "Run @agent-py-quality to analyze all Python code quality issues. Provide a detailed summary." \
+            > /tmp/quality-analysis.txt 2>&1
 
-            Analyze the Python code and return a structured response with:
-            - has_issues: boolean indicating if any quality issues were found
-            - summary: detailed description of all issues found (or success message if none)
-            - issue_count: number of issues found
-          claude_args: |
-            --model claude-haiku-4-5-20251001 --max-turns 3 --json-schema '{"type":"object","properties":{"has_issues":{"type":"boolean"},"summary":{"type":"string"},"issue_count":{"type":"number"}},"required":["has_issues","summary","issue_count"]}'
+          # Check if analysis completed
+          if [ ! -s /tmp/quality-analysis.txt ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+            echo "summary=Quality analysis failed to complete" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Parse the output to determine if issues were found
+          ANALYSIS=$(cat /tmp/quality-analysis.txt)
+          if echo "$ANALYSIS" | grep -qi "All checks passed\|0 errors\|no issues"; then
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$ANALYSIS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$ANALYSIS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Post quality analysis to PR
-        if: always() && steps.quality-analysis.outputs.structured_output != ''
+        if: always() && steps.quality-analysis.outputs.summary != ''
         uses: actions/github-script@v7
         with:
           script: |
-            try {
-              const output = '${{ steps.quality-analysis.outputs.structured_output }}';
-              if (!output || output === '') {
-                console.log('No structured output from quality analysis');
-                return;
-              }
-              const result = JSON.parse(output);
-              const [owner, repo] = '${{ inputs.project }}'.split('/');
+            const summary = `${{ steps.quality-analysis.outputs.summary }}`;
+            const [owner, repo] = '${{ inputs.project }}'.split('/');
 
-              await github.rest.issues.createComment({
-                issue_number: ${{ inputs.pr-number }},
-                owner: owner,
-                repo: repo,
-                body: `## 🔍 Python Quality Gate Analysis\n\n${result.summary}\n\n**Issues Found**: ${result.issue_count}`
-              });
-            } catch (error) {
-              console.error('Failed to parse or post quality analysis:', error);
-              core.setFailed('Quality analysis output parsing failed');
-            }
+            await github.rest.issues.createComment({
+              issue_number: ${{ inputs.pr-number }},
+              owner: owner,
+              repo: repo,
+              body: `## 🔍 Python Quality Gate Analysis\n\n${summary}`
+            });
 
       - name: Fail workflow if issues found
-        if: steps.quality-analysis.outputs.structured_output != '' && fromJSON(steps.quality-analysis.outputs.structured_output).has_issues == true
+        if: steps.quality-analysis.outputs.has_issues == 'true'
         run: |
-          echo "Quality gate failed - ${{ fromJSON(steps.quality-analysis.outputs.structured_output).issue_count }} issues detected in Python code"
+          echo "Quality gate failed - issues detected in Python code"
           exit 1
