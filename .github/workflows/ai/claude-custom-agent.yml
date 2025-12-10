@@ -32,15 +32,19 @@ jobs:
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Extract comment prompt
+      - name: Extract prompt
         id: extract
         run: |
-          # Extract the comment text (remove @claude mention)
-          COMMENT="${{ github.event.comment.body }}"
-          PROMPT=$(echo "$COMMENT" | sed 's/@claude//g' | sed 's/^[[:space:]]*//g')
-
-          # Save prompt to file
-          echo "$PROMPT" > /tmp/claude-prompt.txt
+          # Handle different event types
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For PR events, ask Claude to review the PR
+            echo "Review this pull request and provide feedback on the code changes." > /tmp/claude-prompt.txt
+          else
+            # For comment events, extract the comment text (remove @claude mention)
+            COMMENT="${{ github.event.comment.body }}"
+            PROMPT=$(echo "$COMMENT" | sed 's/@claude//g' | sed 's/^[[:space:]]*//g')
+            echo "$PROMPT" > /tmp/claude-prompt.txt
+          fi
 
       - name: Run Claude CLI
         env:
