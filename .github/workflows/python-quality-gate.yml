@@ -88,12 +88,20 @@ jobs:
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
+      - name: Save quality analysis to file
+        if: always() && steps.quality-analysis.outputs.summary != ''
+        run: |
+          cat > /tmp/quality-summary.md << 'MARKER'
+          ${{ steps.quality-analysis.outputs.summary }}
+          MARKER
+
       - name: Post quality analysis to PR
         if: always() && steps.quality-analysis.outputs.summary != ''
         uses: actions/github-script@v7
         with:
           script: |
-            const summary = `${{ steps.quality-analysis.outputs.summary }}`;
+            const fs = require('fs');
+            const summary = fs.readFileSync('/tmp/quality-summary.md', 'utf8');
             const [owner, repo] = '${{ inputs.project }}'.split('/');
 
             await github.rest.issues.createComment({

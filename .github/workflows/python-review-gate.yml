@@ -88,12 +88,20 @@ jobs:
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
+      - name: Save review findings to file
+        if: always() && steps.code-review.outputs.summary != ''
+        run: |
+          cat > /tmp/review-summary.md << 'MARKER'
+          ${{ steps.code-review.outputs.summary }}
+          MARKER
+
       - name: Post review findings to PR
         if: always() && steps.code-review.outputs.summary != ''
         uses: actions/github-script@v7
         with:
           script: |
-            const summary = `${{ steps.code-review.outputs.summary }}`;
+            const fs = require('fs');
+            const summary = fs.readFileSync('/tmp/review-summary.md', 'utf8');
             const [owner, repo] = '${{ inputs.project }}'.split('/');
 
             await github.rest.issues.createComment({
