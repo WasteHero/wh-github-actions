@@ -47,11 +47,23 @@ jobs:
           mkdir -p .claude/agents || true
           cp .claude-dev-env/agents/py-quality.md .claude/agents/ 2>/dev/null || true
           cp .claude-dev-env/agents/py-reviewer.md .claude/agents/ 2>/dev/null || true
+          echo "Agents copied:"
+          ls -la .claude/agents/ || echo "No agents directory"
 
       - name: Install Claude Code
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify agent files
+        run: |
+          echo "Checking agent files..."
+          if [ -f .claude/agents/py-quality.md ]; then
+            echo "✓ py-quality.md found"
+          else
+            echo "✗ py-quality.md NOT found"
+            exit 1
+          fi
 
       - name: Run Python quality analysis with Claude
         id: quality-analysis
