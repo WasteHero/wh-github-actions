@@ -63,7 +63,7 @@ jobs:
             --output-format text \
             --no-session-persistence \
             --model claude-haiku-4-5-20251001 \
-            --max-turns 5 \
+            --max-turns 15 \
             "Run @agent-py-quality to analyze all Python code quality issues. Provide a detailed summary." \
             > /tmp/quality-analysis.txt 2>&1
 

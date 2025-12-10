@@ -63,7 +63,7 @@ jobs:
             --output-format text \
             --no-session-persistence \
             --model claude-haiku-4-5-20251001 \
-            --max-turns 10 \
+            --max-turns 15 \
             "Run @agent-py-reviewer to conduct a comprehensive code review of Python files. Focus on code quality, best practices, performance, security, and test coverage." \
             > /tmp/code-review.txt 2>&1
 
