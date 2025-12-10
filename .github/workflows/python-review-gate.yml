@@ -44,9 +44,9 @@ jobs:
 
       - name: Setup Claude agents
         run: |
-          mkdir -p .claude/agents
-          cp .claude-dev-env/agents/py-quality.md .claude/agents/
-          cp .claude-dev-env/agents/py-reviewer.md .claude/agents/
+          mkdir -p .claude/agents || true
+          cp .claude-dev-env/agents/py-quality.md .claude/agents/ 2>/dev/null || true
+          cp .claude-dev-env/agents/py-reviewer.md .claude/agents/ 2>/dev/null || true
 
       - name: Install Claude Code
         run: |
