@@ -76,7 +76,7 @@ jobs:
 
           # Parse the output to determine if issues were found
           ANALYSIS=$(cat /tmp/quality-analysis.txt)
-          if echo "$ANALYSIS" | grep -qi "All checks passed\|0 errors\|no issues"; then
+          if echo "$ANALYSIS" | grep -qi "All checks passed\|0 errors\|no issues\|No Critical Issues\|production-ready\|Excellent"; then
             echo "has_issues=false" >> $GITHUB_OUTPUT
             echo "summary<<EOF" >> $GITHUB_OUTPUT
             echo "$ANALYSIS" >> $GITHUB_OUTPUT

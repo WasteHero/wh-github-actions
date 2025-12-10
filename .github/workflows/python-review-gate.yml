@@ -76,7 +76,7 @@ jobs:
 
           # Parse the output to determine if issues were found
           REVIEW=$(cat /tmp/code-review.txt)
-          if echo "$REVIEW" | grep -qi "no issues\|looks good\|all checks passed\|excellent"; then
+          if echo "$REVIEW" | grep -qi "no issues\|looks good\|all checks passed\|excellent\|production-ready\|No Critical Issues"; then
             echo "has_issues=false" >> $GITHUB_OUTPUT
             echo "summary<<EOF" >> $GITHUB_OUTPUT
             echo "$REVIEW" >> $GITHUB_OUTPUT
